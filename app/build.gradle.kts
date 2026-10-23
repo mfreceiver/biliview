@@ -130,16 +130,17 @@ android {
         }
     }
 
-    /*splits {
-        if (gradle.startParameter.taskNames.find { it.startsWith("assembleDefault") } != null) {
-            abi {
-                isEnable = true
-                reset()
-                include("x86_64", "x86", "arm64-v8a", "armeabi-v7a")
-                isUniversalApk = true
+    // 发版 ABI 纪律（见 docs/TODO.md 与 README）：
+    // debug 仅含 x86（本机模拟器）；release 系（release/r8Test/alpha）为 armeabi-v7a + arm64-v8a 合并单包
+    buildTypes.configureEach {
+        ndk {
+            if (name == "debug") {
+                abiFilters.add("x86")
+            } else {
+                abiFilters.addAll(listOf("armeabi-v7a", "arm64-v8a"))
             }
         }
-    }*/
+    }
 
     applicationVariants.configureEach {
         val variant = this

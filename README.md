@@ -1,49 +1,39 @@
-<div align="center">
+# BiliView
 
-<img src="app/shared/src/main/res/drawable/ic_banner.webp" style="border-radius: 24px; margin-top: 32px;"/>
+哔哩哔哩第三方客户端（Android TV 为主，附带移动端界面），个人自用分支。
 
-# BV
+基于开源项目 [aaa1115910/bv](https://github.com/aaa1115910/bv)（MIT License）二次开发，本仓库相对上游的调整：
 
-~~Bug Video~~
+- 品牌更名为 BiliView，applicationId 改为 `cn.vectory.biliview`
+- 移除上游用户黑名单机制（远程黑名单下载 + 登录/启动强杀）
+- 移除大陆区域网络检测与 RegionBlock 拦截页
+- 移除上游 README 中的分发限制声明；版本号自 0.1.0 起独立演进
 
-[![GitHub Release Release](https://img.shields.io/endpoint?url=https%3A%2F%2Fbadge.versions.bv.aaa1115910.dev%2Fgithub%3Fprerelease%3Dfalse)](https://github.com/aaa1115910/bv/releases?q=prerelease%3Afalse)
-[![GitHub Release Pre-Release](https://img.shields.io/endpoint?url=https%3A%2F%2Fbadge.versions.bv.aaa1115910.dev%2Fgithub%3Fprerelease%3Dtrue)](https://github.com/aaa1115910/bv/releases?q=prerelease%3Atrue)
+本仓库为个人本地编译自用，不对外分发。
 
-[![Workflow Release](https://github.com/aaa1115910/bv/actions/workflows/release.yml/badge.svg)](https://github.com/aaa1115910/bv/actions/workflows/release.yml)
-[![Workflow Alpha](https://github.com/aaa1115910/bv/actions/workflows/alpha.yml/badge.svg)](https://github.com/aaa1115910/bv/actions/workflows/alpha.yml)
-[![Android Sdk Require](https://img.shields.io/badge/Android-6.0%2B-informational?logo=android)](https://developer.android.com/jetpack/androidx/versions#version-table)
-[![GitHub](https://img.shields.io/github/license/aaa1115910/bv)](https://github.com/aaa1115910/bv)
+## 构建要求
 
-**BV 无法在中国大陆地区内的智能电视上使用，如有相关使用需求请使用 [云视听小电视](https://app.bilibili.com)**
+- JDK 21（工具链见 `buildSrc` 的 `AppConfiguration.jdk`）
+- Android SDK：compileSdk 36 / build-tools 35+
+- 根目录 `local.properties` 写入 `sdk.dir=<SDK 路径>`（不入库）
+- 首次克隆后初始化子模块：`git submodule update --init --depth 1`
 
-**禁止在中国境内传播、宣传、分发 BV**
+```shell
+./gradlew :app:assembleDefaultDebug     # 调试包（仅 x86，供本机模拟器）
+./gradlew :app:assembleDefaultRelease   # 发版包（armeabi-v7a + arm64-v8a 二合一）
+```
 
-</div>
+## 发版纪律
 
----
-BV ~~(Bug Video)~~ 是一款 [哔哩哔哩](https://www.bilibili.com) 的第三方应用，适配 `Android 移动端`
-和 `Android TV`，使用 `Jetpack Compose` 开发
+- **release 系**（release / alpha / r8Test）：单一 universal APK，armeabi-v7a（arm32）+
+  arm64-v8a（arm64）合并打包，**不含 x86 / x86_64**；
+- **debug**：仅含 x86，供本机 Android 模拟器安装调试；
+- ABI 约束由 `app/build.gradle.kts` 中 `buildTypes.configureEach` 的 `ndk.abiFilters` 强制；
+- 产物命名：`BiliView_<versionCode>_<versionName>.<buildType>_<flavor>_<abi>.apk`；
+- minSdk 24（Android 7.0+），与个人另一 TV 项目 mitv（fongmi-tv）设备基线对齐；
+- 后续发版门禁脚本（版本唯一/单调、签名指纹钉定、APK 归档校验）见 `docs/TODO.md`。
 
-**都是随心乱写的代码，能跑就行。**
+## 许可
 
-## 特色
-
-- :bug: 丰富多样的 Bug
-- :children_crossing: 反人类设计
-- :zap: 卡卡卡卡卡
-- :art: 异样审美
-- :disappointed: 巨难用
-
-## 安装
-
-### Release
-
-- [Github Release](https://github.com/aaa1115910/bv/releases?q=prerelease%3Afalse)
-
-### Alpha
-
-- [Github Release](https://github.com/aaa1115910/bv/releases?q=prerelease%3Atrue)
-
-## License
-
-[MIT](LICENSE) © aaa1115910
+上游 [aaa1115910/bv](https://github.com/aaa1115910/bv) 采用 MIT License，本仓库保留其
+LICENSE 与版权声明，二次修改部分同样以 MIT 提供。

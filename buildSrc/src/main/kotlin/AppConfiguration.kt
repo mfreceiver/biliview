@@ -6,7 +6,7 @@ object AppConfiguration {
     // 对外应用标识（applicationId）
     const val applicationId = "cn.vectory.biliview"
     const val compileSdk = 36
-    const val minSdk = 23
+    const val minSdk = 24
     const val targetSdk = 36
     const val jdk = 21
     private const val major = 0
