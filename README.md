@@ -25,13 +25,14 @@
 
 ## 发版纪律
 
-- **release 系**（release / alpha / r8Test）：单一 universal APK，armeabi-v7a（arm32）+
+- **release**：单一 universal APK，armeabi-v7a（arm32）+
   arm64-v8a（arm64）合并打包，**不含 x86 / x86_64**；
 - **debug**：仅含 x86，供本机 Android 模拟器安装调试；
 - ABI 约束由 `app/build.gradle.kts` 中 `buildTypes.configureEach` 的 `ndk.abiFilters` 强制；
 - 产物命名：`BiliView_<versionCode>_<versionName>.<buildType>_<flavor>_<abi>.apk`；
 - minSdk 24（Android 7.0+），与个人另一 TV 项目 mitv（fongmi-tv）设备基线对齐；
-- 后续发版门禁脚本（版本唯一/单调、签名指纹钉定、APK 归档校验）见 `docs/TODO.md`。
+- 发版经 `scripts/release_build.sh`（main+净树与版本门禁、签名指纹钉定、`APK/` 归档 + SHA256SUMS、
+  Gitea release 发布）；签名密钥与 mitv 同款（`signing.properties`，不入库）。
 
 ## 许可
 

@@ -27,6 +27,5 @@ class ChannelRepository {
         } else {
             generateChannel(accessKey, buvid, endPoint)
         }
-        //proxyChannel = generateChannel(accessKey, buvid, "192.168.2.125", 8080, false)
     }
 }

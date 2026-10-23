@@ -29,7 +29,7 @@ import com.airbnb.lottie.compose.animateLottieCompositionAsState
 import com.airbnb.lottie.compose.rememberLottieComposition
 import com.airbnb.lottie.compose.rememberLottieDynamicProperties
 import com.airbnb.lottie.compose.rememberLottieDynamicProperty
-import dev.aaa1115910.bv.R
+import cn.vectory.biliview.R
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.isActive
 import kotlin.math.min

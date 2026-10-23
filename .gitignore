@@ -7,6 +7,8 @@
 .externalNativeBuild
 .cxx
 /signing.properties
+APK/
+*.apk
 /.idea/jarRepositories.xml
 /.idea/migrations.xml
 /.idea/codeStyles/

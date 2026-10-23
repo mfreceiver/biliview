@@ -100,7 +100,6 @@ object LiveDataWebSocket {
                 launch {
                     delay(5000)
                     while (isActive) {
-                        //println("send heart")
                         outgoing.send(Frame.Binary(true, heartbeat))
                         delay(30_000)
                     }
@@ -140,7 +139,6 @@ object LiveDataWebSocket {
         when (head.type) {
             //心跳包回复（人气值）
             3 -> {
-                //println("接收心跳，房间人气值: ${bytePack.readInt()}")
             }
 
             //普通包（命令）

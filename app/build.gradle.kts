@@ -1,38 +1,35 @@
 @file:Suppress("UnstableApiUsage")
 
 import com.android.build.gradle.internal.api.ApkVariantOutputImpl
-import com.google.firebase.crashlytics.buildtools.gradle.CrashlyticsExtension
 import java.io.FileInputStream
 import java.util.Properties
 
 plugins {
     alias(gradleLibs.plugins.android.application)
     alias(gradleLibs.plugins.compose.compiler)
-    alias(gradleLibs.plugins.firebase.crashlytics)
     alias(gradleLibs.plugins.google.ksp)
-    alias(gradleLibs.plugins.google.services) apply false
     alias(gradleLibs.plugins.kotlin.android)
     alias(gradleLibs.plugins.kotlin.serialization)
 }
 
-if (AppConfiguration.googleServicesAvailable) {
-    apply(plugin = gradleLibs.plugins.google.services.get().pluginId)
+
+val signingProp = rootProject.file("signing.properties")
+val signingProperties = Properties().apply {
+    if (signingProp.exists()) {
+        FileInputStream(signingProp).use(::load)
+    } else {
+        logger.lifecycle("signing.properties not found; release APKs will be unsigned")
+    }
 }
-
-
-val signingProp = file(project.rootProject.file("signing.properties"))
 
 android {
     signingConfigs {
         if (signingProp.exists()) {
-            val properties = Properties().apply {
-                load(FileInputStream(signingProp))
-            }
-            create("key") {
-                storeFile = rootProject.file(properties.getProperty("keystore.path"))
-                storePassword = properties.getProperty("keystore.pwd")
-                keyAlias = properties.getProperty("keystore.alias")
-                keyPassword = properties.getProperty("keystore.alias_pwd")
+            create("release") {
+                storeFile = rootProject.file(signingProperties.getProperty("storeFile"))
+                storePassword = signingProperties.getProperty("storePassword")
+                keyAlias = signingProperties.getProperty("keyAlias")
+                keyPassword = signingProperties.getProperty("storePassword")
             }
         }
     }
@@ -54,9 +51,6 @@ android {
     flavorDimensions.add("channel")
 
     productFlavors {
-        create("lite") {
-            dimension = "channel"
-        }
         create("default") {
             dimension = "channel"
         }
@@ -69,10 +63,7 @@ android {
                 getDefaultProguardFile("proguard-android-optimize.txt"),
                 "proguard-rules.pro"
             )
-            if (signingProp.exists()) signingConfig = signingConfigs.getByName("key")
-            configure<CrashlyticsExtension> {
-                mappingFileUploadEnabled = AppConfiguration.googleServicesAvailable
-            }
+            if (signingProp.exists()) signingConfig = signingConfigs.getByName("release")
         }
         debug {
             isMinifyEnabled = false
@@ -81,32 +72,6 @@ android {
                 "proguard-rules.pro"
             )
             applicationIdSuffix = ".debug"
-            configure<CrashlyticsExtension> {
-                mappingFileUploadEnabled = false
-            }
-        }
-        create("r8Test") {
-            isMinifyEnabled = true
-            proguardFiles(
-                getDefaultProguardFile("proguard-android-optimize.txt"),
-                "proguard-rules.pro"
-            )
-            applicationIdSuffix = ".r8test"
-            if (signingProp.exists()) signingConfig = signingConfigs.getByName("key")
-            configure<CrashlyticsExtension> {
-                mappingFileUploadEnabled = false
-            }
-        }
-        create("alpha") {
-            isMinifyEnabled = true
-            proguardFiles(
-                getDefaultProguardFile("proguard-android-optimize.txt"),
-                "proguard-rules.pro"
-            )
-            if (signingProp.exists()) signingConfig = signingConfigs.getByName("key")
-            configure<CrashlyticsExtension> {
-                mappingFileUploadEnabled = AppConfiguration.googleServicesAvailable
-            }
         }
     }
 
@@ -120,18 +85,10 @@ android {
             excludes += "/META-INF/{AL2.0,LGPL2.1}"
             excludes += "**/*.proto"
         }
-
-        if (gradle.startParameter.taskNames.find { it.startsWith("assembleLite") } != null) {
-            jniLibs {
-                val vlcLibs = listOf("libvlc", "libc++_shared", "libvlcjni")
-                val abis = listOf("x86_64", "x86", "arm64-v8a", "armeabi-v7a")
-                vlcLibs.forEach { vlcLibName -> abis.forEach { abi -> excludes.add("lib/$abi/$vlcLibName.so") } }
-            }
-        }
     }
 
     // 发版 ABI 纪律（见 docs/TODO.md 与 README）：
-    // debug 仅含 x86（本机模拟器）；release 系（release/r8Test/alpha）为 armeabi-v7a + arm64-v8a 合并单包
+    // debug 仅含 x86（本机模拟器）；release 为 armeabi-v7a + arm64-v8a 合并单包
     buildTypes.configureEach {
         ndk {
             if (name == "debug") {

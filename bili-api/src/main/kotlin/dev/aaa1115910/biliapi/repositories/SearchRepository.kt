@@ -31,39 +31,6 @@ class SearchRepository(
             bilibili.polymer.app.search.v1.SearchGrpcKt.SearchCoroutineStub(channelRepository.proxyChannel!!)
         }.getOrNull()
 
-    /*private val searchStub
-        get() = runCatching {
-            SearchGrpcKt.SearchCoroutineStub(channelRepository.defaultChannel!!)
-        }.getOrNull()
-
-    suspend fun search(
-        keyword: String,
-        page: Int = 1,
-        pageSize: Int = 20,
-        preferApiType: ApiType = ApiType.Web
-    ): SearchData {
-        return when (preferApiType) {
-            ApiType.Web -> {
-                val data = BiliHttpApi.search(
-                    keyword = keyword,
-                    page = page,
-                    pageSize = pageSize,
-                    sessData = authRepository.sessionData!!,
-                ).getResponseData()
-                SearchData.fromSearchResponse(data)
-            }
-
-            ApiType.App -> {
-                val reply = searchStub?.searchV2(searchV2Req {
-                    this.keyword = keyword
-                    this.page = page
-                    this.pageSize = pageSize
-                })
-                SearchData.fromSearchResponse(reply!!)
-            }
-        }
-    }*/
-
     suspend fun getSearchHotwords(
         limit: Int = 30,
         preferApiType: ApiType = ApiType.Web
@@ -72,13 +39,6 @@ class SearchRepository(
             ApiType.Web -> BiliHttpApi.getWebSearchSquare(limit = limit)
                 .getResponseData().trending.list
                 .map { Hotword.fromHttpWebHotword(it) }
-
-            /*ApiType.App -> BiliHttpApi.getAppSearchSquare(limit = limit)
-                .getResponseData()
-                .firstOrNull { it.type == "trending" }
-                ?.data?.list
-                ?.map { Hotword.fromHttpAppSquareDataItem(it) }
-                ?: emptyList()*/
 
             ApiType.App -> BiliHttpApi.getSearchTrendRank(limit = 50)
                 .getResponseData().list

@@ -433,16 +433,8 @@ object BiliHttpApi {
      */
 
     suspend fun getToView(
-        // max: Long = 0,
-        // business: String = "",
-        // viewAt: Long = 0,
-        // pageSize: Int = 20,
         sessData: String = ""
     ): BiliResponse<ToViewData> = client.get("/x/v2/history/toview") {
-        // parameter("max", max)
-        // parameter("business", business)
-        // parameter("view_at", viewAt)
-        // parameter("ps", pageSize)
         header("Cookie", "SESSDATA=$sessData;")
     }.body()
 
@@ -1174,13 +1166,11 @@ object BiliHttpApi {
     suspend fun getAppSearchSquare(
         limit: Int = 10,
         platform: String? = null,
-        //accessKey: String = ""
     ): BiliResponse<List<AppSearchSquareData>> =
         client.get("https://app.bilibili.com/x/v2/search/square") {
             parameter("limit", limit)
             platform?.let { parameter("platform", platform) }
             parameter("build", BiliAppConf.APP_BUILD_CODE)
-            //parameter("access_key", accessKey)
         }.body()
 
     /**
@@ -1193,8 +1183,6 @@ object BiliHttpApi {
     ): BiliResponse<SearchTendingData> =
         client.get("https://app.bilibili.com/x/v2/search/trending/ranking") {
             parameter("limit", limit)
-            //platform?.let { parameter("platform", platform) }
-            //parameter("build", BiliAppConf.APP_BUILD_CODE)
         }.body()
 
     /**
@@ -1717,7 +1705,6 @@ object BiliHttpApi {
         oid: Long,
         mode: Int = 3,
         paginationStr: String = """{"offset":""}""",
-        //webLocation: Int = 1815875,
         sessData: String? = null,
         buvid3: String? = null
     ): BiliResponse<CommentData> =
@@ -1726,7 +1713,6 @@ object BiliHttpApi {
             parameter("oid", oid)
             parameter("mode", mode)
             parameter("pagination_str", paginationStr)
-            //parameter("web_location", webLocation)
             sessData?.let { header("Cookie", "SESSDATA=$sessData;buvid3=$buvid3;") }
         }.body()
 

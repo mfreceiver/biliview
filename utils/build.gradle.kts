@@ -23,20 +23,6 @@ android {
                 "proguard-rules.pro"
             )
         }
-        create("r8Test") {
-            isMinifyEnabled = false
-            proguardFiles(
-                getDefaultProguardFile("proguard-android-optimize.txt"),
-                "proguard-rules.pro"
-            )
-        }
-        create("alpha") {
-            isMinifyEnabled = false
-            proguardFiles(
-                getDefaultProguardFile("proguard-android-optimize.txt"),
-                "proguard-rules.pro"
-            )
-        }
     }
 
     buildFeatures {
@@ -52,12 +38,9 @@ java {
 }
 
 dependencies {
-    implementation(platform("${libs.firebase.bom.get()}"))
     implementation(androidx.compose.tv.foundation)
     implementation(androidx.compose.ui)
     implementation(androidx.core.ktx)
-    implementation(libs.firebase.analytics)
-    implementation(libs.firebase.crashlytics)
     implementation(libs.logging)
     implementation(libs.material)
 }

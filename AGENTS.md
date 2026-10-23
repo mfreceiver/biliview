@@ -11,7 +11,7 @@
 ## 命名双层约定（改动前必读）
 
 - 对外安装身份：`applicationId = cn.vectory.biliview`（定义于 `buildSrc/src/main/kotlin/AppConfiguration.kt`）。
-- 各模块 namespace 与全部 Kotlin 包名**仍为上游 `dev.aaa1115910.bv`**（604 个 .kt 文件、R/BuildConfig 锚点）。全量迁移是 `docs/TODO.md` 登记的整体任务：**禁止零散重命名**，只允许一次性脚本化迁移 + 全量编译验证。
+- 各模块 `namespace` 与全部 Kotlin 包名已于 2026-10-23 一次性脚本化迁移为 `cn.vectory.biliview`（由 `AppConfiguration.appId` 派生，R/BuildConfig 锚点同步；上游 `dev.aaa1115910.bv` 仅存在于迁移前的 git 历史）。迁移覆盖 `dev.aaa1115910.bv` 完整词边界；**不**迁移同根独立包 `dev.aaa1115910.biliapi` / `dev.aaa1115910.bilisubtitle` / `dev.aaa1115910.symbols` / `dev.aaa1115910.m3qrcode`，也不改 GitHub 仓库 URL（aaa1115910/bv）与 gradle group。
 
 ## 构建环境
 
@@ -19,15 +19,15 @@
 - `local.properties` 写 `sdk.dir=/home/mar/Android/Sdk`（不入库）；compileSdk 36 / minSdk 24 / targetSdk 36。
 - 首次克隆：`git submodule update --init --depth 1`（`libs` = aaa1115910/bv-libs，含 av1/ffmpeg/VLC 解码 AAR）。
 - 常用任务：`./gradlew :app:assembleDefaultDebug`、`./gradlew :app:assembleDefaultRelease`。
-- 维度：flavor `lite`/`default` × buildType `debug`/`release`/`r8Test`/`alpha`；`assembleLite` 产物剔除 VLC so。
+- 维度：flavor `default` × buildType `debug`/`release`（alpha、r8Test buildType 与 lite flavor 已裁剪移除）。
 
 ## 发版 ABI 纪律（强制，勿删）
 
 - `debug`：仅 `x86`（本机模拟器用）。
-- `release`/`alpha`/`r8Test`：`armeabi-v7a` + `arm64-v8a` 合并单包，**禁止 x86/x86_64**。
+- `release`：`armeabi-v7a` + `arm64-v8a` 合并单包，**禁止 x86/x86_64**。
 - 由 `app/build.gradle.kts` 的 `buildTypes.configureEach { ndk { abiFilters … } }` 强制；改动 ABI 集合须先更新 README「发版纪律」与本条。
 - 版本：`buildSrc` `AppConfiguration` 的 major/minor/patch/hotFix；`versionCode = git rev-list --count HEAD`（依赖提交计数，勿手工指定版本号）；产物命名 `BiliView_<versionCode>_<versionName>.<buildType>_<flavor>_<abi>.apk`。
-- release 尚无签名（缺 `signing.properties` 时产物 unsigned）；发版门禁脚本（版本唯一/单调、证书指纹钉定、归档校验）在 `docs/TODO.md` 登记，落地前不要手打 tag 发版。
+- release 签名：根目录 `signing.properties`（不入库，三键 storeFile/storePassword/keyAlias，keyAlias=release，keystore 与 mitv 同款）；缺该文件时产物 unsigned。发版只经 `scripts/release_build.sh`（版本唯一/单调、证书指纹钉定 fail-closed、APK/ 归档 + SHA256SUMS、Gitea 发布），**禁止手打 tag 发版**；ABI 集合同时硬编码于 `release_assert_apk.sh`，改动 ABI 须同步该脚本。
 
 ## 已移除项（勿以任何理由恢复）
 
@@ -38,6 +38,6 @@
 ## 工作纪律
 
 - 待办唯一登记处：`docs/TODO.md`（fongmi 风格：完成后立即移除条目）。
-- 提交推送到 `origin main`（https://git.vectory.cn:18443/mfreceiver/biliview.git ）。
+- 提交推送到 `origin main`（http://192.168.3.252:11330/mfreceiver/biliview.git ）。
 - B 站 API 语义参考 bilibili-API-collect 社区文档；涉及风控面（buvid3、WBI 签名、412/-352 退避、请求频率）的改动保持保守，勿引入高频轮询或批量请求。
 - 与上游 bv 的差异是刻意的：发现"和上游不一样"不等于 bug，先查本文件与 git 历史。

@@ -3,7 +3,9 @@
 > 只记录待完成任务；完成后立即从本文件移除。
 > 已完成基线（不在此列，见 git 历史）：黑名单机制移除、大陆区域拦截移除（RegionBlockScreen×2 +
 > NetworkUtil）、README 重写、发版 ABI 纪律落地（debug=x86 / release 系=armeabi-v7a+arm64-v8a）、
-> minSdk 23→24 对齐 mitv。
+> minSdk 23→24 对齐 mitv、buildType/flavor 裁剪（alpha、r8Test、lite 移除，仅 default × debug/release）、
+> 包名与 namespace 全量迁移 `dev.aaa1115910.bv` → `cn.vectory.biliview`（9 处源码目录移动 + 1774 处
+> 词边界替换，全量编译验证；`dev.aaa1115910.biliapi` 等同根独立包与上游 URL 不在范围）。
 
 ## 功能缺口
 
@@ -16,28 +18,16 @@
 
 ## 代码清理（无用功能移除）
 
-- [ ] Firebase Crashlytics / google-services 全链路移除：插件 alias、`CrashlyticsExtension`
-      配置、`AppConfiguration.googleServicesAvailable`、相关依赖与初始化（当前无
-      google-services.json 时空操作，但代码与插件仍在构建链上）
-- [ ] buildType / flavor 裁剪：评估移除 alpha、r8Test buildType 与 lite flavor
-      （个人使用仅需 default × debug/release）
 - [ ] 上游残留死代码与未用资源清理（注释掉的逻辑、多余 strings/drawable）
-
-## 包名与命名空间迁移
-
-- [ ] namespace 与 Kotlin 包名全量迁移 `dev.aaa1115910.bv` → `cn.vectory.biliview`：
-      各模块 `namespace`、604 个 .kt 文件 package/import（含 79 处 `dev.aaa1115910.bv.R`）、
-      `buildSrc AppConfiguration.appId`；建议脚本化一次完成 + 全量编译验证
-      （manifest provider authority、Room/DataStore 无包名耦合可平移，protobuf 生成类除外需验证）
 
 ## 发版与工程化
 
-- [ ] 配置 release 签名：`signing.properties` + keystore（当前无该文件时 release 产物 unsigned）
-- [ ] 移植 mitv（fongmi-tv）式发版脚本 `scripts/release_build.sh`：main+干净树门禁、
-      版本号唯一/单调门禁、签名证书指纹钉定（fail-closed）、APK 归档 + SHA256SUMS、
-      release notes + annotated tag、`--publish` 发布到 Gitea release；
-      配套 `release_assert_apk.sh` 断言（签名指纹 / 包名 cn.vectory.biliview / 版本 /
-      ABI 集合 = arm32+arm64）
+- [ ] 配套收尾（发版脚本主体已落地并通过审阅）：修复审阅发现的应修项——版本单调门禁可绕过
+      （tag 格式不符静默放行、未比对远端 tag、前导零八进制陷阱）、signing.properties 缺键时
+      debug 构建被拖死、curl 无超时、--publish-only 未校验 SHA256SUMS 含当前归档/tag annotated、
+      assert 补 debuggable/testOnly/min/targetSdk/单签名者断言、mapping.txt 归档；
+      发版前需 `git remote set-url origin http://192.168.3.252:11330/mfreceiver/biliview.git`
+      （当前指向 LAN 地址会被脚本拒绝）
 - [ ] 工具链对齐 mitv 评估：AGP 8.11.1 / Gradle 8.14.3 / Kotlin 2.2.0 →
       AGP 9.3.1 / Gradle 9.7.1（compileSdk/targetSdk 36 vs 35）；需评估 Compose 编译器
       与依赖联动后统一，不盲目升级

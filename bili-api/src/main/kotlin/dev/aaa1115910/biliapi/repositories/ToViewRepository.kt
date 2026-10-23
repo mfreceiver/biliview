@@ -23,7 +23,6 @@ class ToViewRepository(
         return when (preferApiType) {
             ApiType.Web -> {
                 val data = BiliHttpApi.getToView(
-                    // viewAt = cursor,
                     sessData = authRepository.sessionData!!,
                 ).getResponseData()
                 print(data)
@@ -32,7 +31,6 @@ class ToViewRepository(
 
             ApiType.App -> {
                 val data = BiliHttpApi.getToView(
-                    // viewAt = cursor,
                     sessData = authRepository.sessionData!!,
                 ).getResponseData()
                 ToViewData.fromToViewResponse(data)

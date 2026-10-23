@@ -1,8 +1,6 @@
-import java.io.File
-
 object AppConfiguration {
-    // Kotlin 源码包与各模块 namespace 仍沿用上游包名，R/BuildConfig 生成位置不变
-    const val appId = "dev.aaa1115910.bv"
+    // 全量迁移已完成：Kotlin 源码包与各模块 namespace 均由本常量派生（上游 bv 包名 → cn.vectory.biliview），R/BuildConfig 随之生成于新包
+    const val appId = "cn.vectory.biliview"
     // 对外应用标识（applicationId）
     const val applicationId = "cn.vectory.biliview"
     const val compileSdk = 36
@@ -21,20 +19,6 @@ object AppConfiguration {
     }
     val versionCode: Int by lazy { "git rev-list --count HEAD".exec().toInt() }
     const val libVLCVersion = "3.0.18"
-    var googleServicesAvailable = true
-
-    init {
-        initConfigurations()
-    }
-
-    private fun initConfigurations() {
-        val googleServicesJsonFile = File("app/google-services.json")
-        googleServicesAvailable =
-            googleServicesJsonFile.exists() && googleServicesJsonFile.readText().let {
-                it.contains(appId) && it.contains("$appId.debug")
-            }
-        println("Google Services available: $googleServicesAvailable")
-    }
 }
 
 fun String.exec() = String(Runtime.getRuntime().exec(this).inputStream.readBytes()).trim()
