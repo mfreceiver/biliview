@@ -1,0 +1,43 @@
+# AGENTS.md — biliview（BiliView）
+
+本文件约束在此仓库工作的人与 AI 代理。全局/实例级约定见 `~/.dsh/AGENTS.md`，冲突时以用户直接指示 > 本文件。
+
+## 项目身份
+
+- BiliView：[aaa1115910/bv](https://github.com/aaa1115910/bv)（MIT）的个人自用二次开发分支，Android TV 为主。
+- 本仓库 git 历史已重新初始化（单根提交 import 上游 @0e454c0），**不能直接 merge 上游分支**；上游跟进见 `docs/TODO.md`「上游同步策略」。
+- 姊妹项目：`/home/mar/personal_projects/fongmi-tv`（mitv）。工程流程、设备基线（minSdk 24 / JDK 21）尽量与它对齐；其 `scripts/release_build.sh` + `release_assert_apk.sh` 是发版脚本的移植蓝本。
+
+## 命名双层约定（改动前必读）
+
+- 对外安装身份：`applicationId = cn.vectory.biliview`（定义于 `buildSrc/src/main/kotlin/AppConfiguration.kt`）。
+- 各模块 namespace 与全部 Kotlin 包名**仍为上游 `dev.aaa1115910.bv`**（604 个 .kt 文件、R/BuildConfig 锚点）。全量迁移是 `docs/TODO.md` 登记的整体任务：**禁止零散重命名**，只允许一次性脚本化迁移 + 全量编译验证。
+
+## 构建环境
+
+- JDK 21（gradle 工具链要求；本机 `/home/mar/jdk/jdk-21.0.12+8`，`~/.gradle/gradle.properties` 已设 `org.gradle.java.home`；系统默认 java 版本更高，仅作启动器）。
+- `local.properties` 写 `sdk.dir=/home/mar/Android/Sdk`（不入库）；compileSdk 36 / minSdk 24 / targetSdk 36。
+- 首次克隆：`git submodule update --init --depth 1`（`libs` = aaa1115910/bv-libs，含 av1/ffmpeg/VLC 解码 AAR）。
+- 常用任务：`./gradlew :app:assembleDefaultDebug`、`./gradlew :app:assembleDefaultRelease`。
+- 维度：flavor `lite`/`default` × buildType `debug`/`release`/`r8Test`/`alpha`；`assembleLite` 产物剔除 VLC so。
+
+## 发版 ABI 纪律（强制，勿删）
+
+- `debug`：仅 `x86`（本机模拟器用）。
+- `release`/`alpha`/`r8Test`：`armeabi-v7a` + `arm64-v8a` 合并单包，**禁止 x86/x86_64**。
+- 由 `app/build.gradle.kts` 的 `buildTypes.configureEach { ndk { abiFilters … } }` 强制；改动 ABI 集合须先更新 README「发版纪律」与本条。
+- 版本：`buildSrc` `AppConfiguration` 的 major/minor/patch/hotFix；`versionCode = git rev-list --count HEAD`（依赖提交计数，勿手工指定版本号）；产物命名 `BiliView_<versionCode>_<versionName>.<buildType>_<flavor>_<abi>.apk`。
+- release 尚无签名（缺 `signing.properties` 时产物 unsigned）；发版门禁脚本（版本唯一/单调、证书指纹钉定、归档校验）在 `docs/TODO.md` 登记，落地前不要手打 tag 发版。
+
+## 已移除项（勿以任何理由恢复）
+
+- 用户黑名单机制全链路（BlacklistUtil、blacklist.proto/raw、downloadBlacklist 任务、启动/登录强杀）。
+- 大陆区域拦截（RegionBlockScreen tv+mobile、NetworkUtil、MainActivity 启动网络检测）。
+- 上游 README 的「禁止大陆使用/境内分发」声明；本仓库定位个人本地编译自用，不对外分发。
+
+## 工作纪律
+
+- 待办唯一登记处：`docs/TODO.md`（fongmi 风格：完成后立即移除条目）。
+- 提交推送到 `origin main`（https://git.vectory.cn:18443/mfreceiver/biliview.git ）。
+- B 站 API 语义参考 bilibili-API-collect 社区文档；涉及风控面（buvid3、WBI 签名、412/-352 退避、请求频率）的改动保持保守，勿引入高频轮询或批量请求。
+- 与上游 bv 的差异是刻意的：发现"和上游不一样"不等于 bug，先查本文件与 git 历史。
