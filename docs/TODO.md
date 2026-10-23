@@ -19,15 +19,20 @@
 ## 代码清理（无用功能移除）
 
 - [ ] 上游残留死代码与未用资源清理（注释掉的逻辑、多余 strings/drawable）
+- [ ] 非阻塞小项（来自清理/迁移/发版审阅）：
+      `GithubApi.getLatestPreReleaseBuild` 仅剩测试引用可删（连同其测试）；
+      app/.gitignore 残留 `/r8Test` 行；.github/workflows 产物名为上游遗留（workflow 不运行，可简化）；
+      `fException` 的 `$msg` 未参与消息拼接（上游 bug，顺手修）；
+      孤儿文件 SmsLoginContent.kt、未用 `ic_launcher_round`、
+      ToViewRepository.kt:29 的 `print(data)` 调试输出移除
 
 ## 发版与工程化
 
 - [ ] 配套收尾（发版脚本主体已落地并通过审阅）：修复审阅发现的应修项——版本单调门禁可绕过
       （tag 格式不符静默放行、未比对远端 tag、前导零八进制陷阱）、signing.properties 缺键时
       debug 构建被拖死、curl 无超时、--publish-only 未校验 SHA256SUMS 含当前归档/tag annotated、
-      assert 补 debuggable/testOnly/min/targetSdk/单签名者断言、mapping.txt 归档；
-      发版前需 `git remote set-url origin http://192.168.3.252:11330/mfreceiver/biliview.git`
-      （当前指向 LAN 地址会被脚本拒绝）
+      assert 补 debuggable/testOnly/min/targetSdk/单签名者断言、mapping.txt 归档
+      （origin 已统一为 http://192.168.3.252:11330/mfreceiver/biliview.git）
 - [ ] 工具链对齐 mitv 评估：AGP 8.11.1 / Gradle 8.14.3 / Kotlin 2.2.0 →
       AGP 9.3.1 / Gradle 9.7.1（compileSdk/targetSdk 36 vs 35）；需评估 Compose 编译器
       与依赖联动后统一，不盲目升级
