@@ -51,6 +51,16 @@
       ⑤ 后续升级项：Kotlin 2.4、AGP 9.3 最新 patch；暂不启用 configuration cache
 - [ ] 上游同步策略：与 aaa1115910/bv@develop 的更新如何跟进（本仓库历史已重新初始化，
       无法直接 merge，需 vendor 重导入或 patch 流程）
+- [ ] R8 规则的遗留盲区（2026-10-24 加固后复盘，发货 APK 的 mapping 取证）：
+      ① slf4j-simple 靠 ServiceLoader 发现，但 org.slf4j 的 26 个类有 25 个被改名且无 keep 规则
+      （R8 有内建 ServiceLoader 重写，大概率仍可用）；失效表现仅为日志静默，不影响功能，暂不修；
+      ② com.badlogic.gdx 20 个类全部被改名（akdanmaku 引擎依赖 gdx 类型），gdx 若有反射/JNI 回调面，
+      需真机确认弹幕是否正常；
+      ③ `-keep class org.videolan.libvlc.** { *; }` 目前是空转规则：全仓无 org.videolan 引用、
+      :libs:libVLC 只在 settings 里 include 而无模块依赖、mapping/APK 里 0 命中 —— 要么恢复依赖
+      （player 侧是否要接 VLC 解码待定），要么删规则；
+      ④ 模块级 consumer-rules.pro 全空，且 app/{shared,tv,mobile} 的那几个未接线，库规则无处落地；
+      排查库相关混淆问题时先确认规则到底有没有被 merge 进来
 
 ## 风控与账号安全
 
