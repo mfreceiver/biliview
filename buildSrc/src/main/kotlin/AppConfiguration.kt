@@ -10,15 +10,13 @@ object AppConfiguration {
     private const val major = 0
     private const val minor = 2
     private const val patch = 1
-    // 版本号核心只到三位（major.minor.patch）；hotFix 仅用于同 core 内的紧急重发，平时必须为 0
-    private const val hotFix = 0
+    // 版本号核心固定三位（major.minor.patch）：修复版（hotfix）也走 patch 位递增，不设第四位
 
     // 版本号必须每次构建现算：buildSrc 的类在 Gradle daemon 里跨构建复用 classloader，
     // 用 by lazy 缓存会把第一次算出的 versionName/versionCode 冻结在整个 daemon 生命周期里
     // （实测：daemon 存活期间新提交后构建仍产出旧 versionName，release_assert_apk.sh fail-closed）。
-    @Suppress("KotlinConstantConditions")
     val versionName: String
-        get() = "$major.$minor.$patch${".$hotFix".takeIf { hotFix != 0 } ?: ""}" +
+        get() = "$major.$minor.$patch" +
                 ".r${versionCode}.${"git rev-list HEAD --abbrev-commit --max-count=1".exec()}"
 
     val versionCode: Int get() = "git rev-list --count HEAD".exec().toInt()

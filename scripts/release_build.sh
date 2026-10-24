@@ -39,16 +39,15 @@ if [[ -n "$(git status --porcelain)" ]]; then
 fi
 REMOTE="$(git remote get-url origin 2>/dev/null || true)"
 [[ "$REMOTE" == "$ORIGIN_EXPECTED" ]] || fail "origin mismatch: expected $ORIGIN_EXPECTED; got ${REMOTE:-<missing>}"
-# Match AppConfiguration version: major.minor.patch[.hotFix].r<count>.<abbrev HEAD>.
+# Match AppConfiguration version: major.minor.patch.r<count>.<abbrev HEAD>.
+# 核心固定三位：修复（hotfix）也走 patch 位递增，不产生第四位；历史标签里的四位 core 仅作兼容读取。
 CONFIG=buildSrc/src/main/kotlin/AppConfiguration.kt
 [[ -f "$CONFIG" ]] || fail "missing $CONFIG"
 read_const() { local key="$1"; sed -nE "s/^[[:space:]]*private const val $key = ([0-9]+)$/\\1/p" "$CONFIG"; }
-MAJOR="$(read_const major)"; MINOR="$(read_const minor)"; PATCH="$(read_const patch)"; HOTFIX="$(read_const hotFix)"
-for n in "$MAJOR" "$MINOR" "$PATCH" "$HOTFIX"; do [[ "$n" =~ ^[0-9]+$ ]] || fail 'version constants missing/ambiguous in AppConfiguration.kt'; done
+MAJOR="$(read_const major)"; MINOR="$(read_const minor)"; PATCH="$(read_const patch)"
+for n in "$MAJOR" "$MINOR" "$PATCH"; do [[ "$n" =~ ^[0-9]+$ ]] || fail 'version constants missing/ambiguous in AppConfiguration.kt'; done
 VCODE="$(git rev-list --count HEAD)"; SHORT="$(git rev-parse --short HEAD)"
-VNAME="$MAJOR.$MINOR.$PATCH${HOTFIX:+}"
-((HOTFIX == 0)) || VNAME+=".$HOTFIX"
-VNAME+=".r$VCODE.$SHORT"
+VNAME="$MAJOR.$MINOR.$PATCH.r$VCODE.$SHORT"
 APK_VNAME="$VNAME.release"
 TAG="v$VNAME"; ARCHIVE="biliview-$VNAME-$SHORT-universal-release.apk"
 # Tag history and archives provide fail-closed monotonicity/uniqueness.
