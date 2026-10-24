@@ -32,10 +32,23 @@ object ProtobufConfiguration {
         "bilibili/rpc/status.proto",
         "common/ErrorProto.proto",
     )
-    val excludeProtoFiles = getAllProtoFiles() - usedProtoFiles
 
-    private fun getAllProtoFiles(): Set<String> {
-        val rootDir = File("bili-api/grpc/proto")
+    /**
+     * 返回 [protoRootDir] 下未使用的 .proto（相对路径，`/` 分隔），供 protobuf 的 proto sourceSet
+     * 做 exclude 过滤。
+     *
+     * proto 根目录由调用方（构建脚本）通过 Gradle 的 project dir 解析后传入，不再依赖进程工作目录，
+     * 避免 Gradle 9 懒配置 / 从其他目录或 included build 调用时静默算出空集合（那样会把全部 122 个
+     * proto 都交给 protoc 编译）。
+     */
+    fun excludeProtoFiles(protoRootDir: File): Set<String> {
+        require(protoRootDir.isDirectory) {
+            "protobuf proto 根目录不存在: ${protoRootDir.absolutePath}"
+        }
+        return getAllProtoFiles(protoRootDir) - usedProtoFiles
+    }
+
+    private fun getAllProtoFiles(rootDir: File): Set<String> {
         val protoFiles = mutableSetOf<String>()
         rootDir.walk().forEach {
             if (it.isFile && it.extension == "proto") {

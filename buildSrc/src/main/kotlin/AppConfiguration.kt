@@ -8,7 +8,7 @@ object AppConfiguration {
     const val targetSdk = 36
     const val jdk = 21
     private const val major = 0
-    private const val minor = 1
+    private const val minor = 2
     private const val patch = 0
     private const val hotFix = 0
 
