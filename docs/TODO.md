@@ -27,12 +27,8 @@
       实例化但 `showLibVLCDownloaderDialog` 从未置 true（永不显示）；`VlcLibsApi` 与
       `AppConfiguration.libVLCVersion`（player/build.gradle.kts:19 的 BuildConfig 字段）无其它消费者；
       `:libs:libVLC` 只在 settings 里 include、无模块依赖，AAR 不进包 —— 整条链路是死的
-- [ ] 非阻塞小项（来自清理/迁移/发版审阅）：
-      `GithubApi.getLatestPreReleaseBuild` 仅剩测试引用可删（连同其测试）；
-      app/.gitignore 残留 `/r8Test` 行；.github/workflows 产物名为上游遗留（workflow 不运行，可简化）；
-      `fException` 的 `$msg` 未参与消息拼接（上游 bug，顺手修）；
-      孤儿文件 SmsLoginContent.kt、未用 `ic_launcher_round`、
-      ToViewRepository.kt:29 的 `print(data)` 调试输出移除
+- [ ] .github/workflows 的 4 个 workflow 全部 `if: github.repository == 'aaa1115910/bv'`（fork 里永不运行），
+      产物名/签名注入也是上游遗留 —— 要么删掉，要么改造成本仓库的自建 CI
 
 ## 发版与工程化
 

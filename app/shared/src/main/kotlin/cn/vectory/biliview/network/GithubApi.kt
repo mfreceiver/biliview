@@ -61,20 +61,6 @@ object GithubApi {
         }
     }
 
-    private suspend fun getReleases(
-        owner: String = OWNER,
-        repo: String = REPO,
-        pageSize: Int = 30,
-        page: Int = 1
-    ): List<Release> {
-        val response = client.get("repos/$owner/$repo/releases") {
-            parameter("per_page", pageSize)
-            parameter("page", page)
-        }.bodyAsText()
-        checkErrorMessage(response)
-        return json.decodeFromString<List<Release>>(response)
-    }
-
     private suspend fun getLatestRelease(
         owner: String = OWNER,
         repo: String = REPO
@@ -82,18 +68,6 @@ object GithubApi {
         val response = client.get("repos/$owner/$repo/releases/latest").bodyAsText()
         checkErrorMessage(response)
         return json.decodeFromString<Release>(response)
-    }
-
-    suspend fun getLatestPreReleaseBuild(): Release {
-        var release: Release? = null
-        var page = 1
-        while (release == null) {
-            val releases = getReleases(page = page)
-            if (releases.isEmpty()) break
-            release = releases.firstOrNull { it.isPreRelease }
-            page++
-        }
-        return release ?: throw IllegalStateException("No pre-release found")
     }
 
     suspend fun getLatestReleaseBuild(): Release = getLatestRelease()

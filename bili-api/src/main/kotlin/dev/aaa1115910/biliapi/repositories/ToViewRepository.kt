@@ -25,7 +25,6 @@ class ToViewRepository(
                 val data = BiliHttpApi.getToView(
                     sessData = authRepository.sessionData!!,
                 ).getResponseData()
-                print(data)
                 ToViewData.fromToViewResponse(data)
             }
 

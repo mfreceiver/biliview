@@ -8,9 +8,4 @@ class GithubApiTest {
     fun `get latest release build`() = runBlocking {
         println(GithubApi.getLatestReleaseBuild())
     }
-
-    @Test
-    fun `get latest pre-release build`() = runBlocking {
-        println(GithubApi.getLatestPreReleaseBuild())
-    }
 }
