@@ -15,8 +15,6 @@ android {
 
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
         consumerProguardFiles("consumer-rules.pro")
-
-        buildConfigField("String", "libVLCVersion", "\"${AppConfiguration.libVLCVersion}\"")
     }
 
     buildTypes {

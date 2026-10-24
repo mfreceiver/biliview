@@ -22,13 +22,6 @@
 ## 代码清理（无用功能移除）
 
 - [ ] 上游残留死代码与未用资源清理（注释掉的逻辑、多余 strings/drawable）
-- [ ] VLC 解码链路现状（2026-10-24 核实，决定「删干净」还是「接回来」）：
-      `PlayerType` 枚举只有 `Media3`（无 VLC 选项）；`LibVLCDownloaderDialog` 在 PlayerTypeSetting.kt 里
-      实例化但 `showLibVLCDownloaderDialog` 从未置 true（永不显示）；`VlcLibsApi` 与
-      `AppConfiguration.libVLCVersion`（player/build.gradle.kts:19 的 BuildConfig 字段）无其它消费者；
-      `:libs:libVLC` 只在 settings 里 include、无模块依赖，AAR 不进包 —— 整条链路是死的
-- [ ] .github/workflows 的 4 个 workflow 全部 `if: github.repository == 'aaa1115910/bv'`（fork 里永不运行），
-      产物名/签名注入也是上游遗留 —— 要么删掉，要么改造成本仓库的自建 CI
 
 ## 发版与工程化
 
@@ -58,7 +51,7 @@
       与 org.slf4j.simple.SimpleServiceProvider，两者都在 dex 里，日志走 logcat 正常 —— 无需 keep；
       ② com.badlogic.gdx 20 个类全部被改名（akdanmaku 引擎依赖 gdx 类型），gdx 若有反射/JNI 回调面，
       需真机确认弹幕是否正常；
-      ③ LibVLC 空转 keep 已删（规则保护不到任何类）；VLC 解码要不要接见「代码清理」条目；
+      ③ LibVLC 空转 keep 与整条 VLC 链路已删（2026-10-24，见 commit「删除上游遗留的 VLC 解码链路」）；
       ④ consumer-rules.pro：删掉 app/{shared,tv,mobile} 三个未接线的空文件；player/{core,shared,tv,mobile}、
       player、utils 六处仍由 consumerProguardFiles 引用，留作占位——将来依赖库需要专属规则时写在这里
 

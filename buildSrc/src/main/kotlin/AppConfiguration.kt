@@ -22,7 +22,6 @@ object AppConfiguration {
                 ".r${versionCode}.${"git rev-list HEAD --abbrev-commit --max-count=1".exec()}"
 
     val versionCode: Int get() = "git rev-list --count HEAD".exec().toInt()
-    const val libVLCVersion = "3.0.18"
 }
 
 fun String.exec() = String(Runtime.getRuntime().exec(this).inputStream.readBytes()).trim()

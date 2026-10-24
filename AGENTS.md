@@ -17,7 +17,8 @@
 
 - JDK 21（gradle 工具链要求；本机 `/home/mar/jdk/jdk-21.0.12+8`，`~/.gradle/gradle.properties` 已设 `org.gradle.java.home`；系统默认 java 版本更高，仅作启动器）。
 - `local.properties` 写 `sdk.dir=/home/mar/Android/Sdk`（不入库）；compileSdk 36 / minSdk 24 / targetSdk 36。
-- 首次克隆：`git submodule update --init --depth 1`（`libs` = aaa1115910/bv-libs，含 av1/ffmpeg/VLC 解码 AAR）。
+- 首次克隆：`git submodule update --init --depth 1`（`libs` = aaa1115910/bv-libs，含 av1/ffmpeg 解码 AAR；
+  子模块里的 `libVLC` 目录本仓库不再 include/依赖，VLC 解码链路已于 2026-10-24 整体移除）。
 - 常用任务：`./gradlew :app:assembleDefaultDebug`、`./gradlew :app:assembleDefaultRelease`。
 - 维度：flavor `default` × buildType `debug`/`release`（alpha、r8Test buildType 与 lite flavor 已裁剪移除）。
 
@@ -33,6 +34,9 @@
 
 - 用户黑名单机制全链路（BlacklistUtil、blacklist.proto/raw、downloadBlacklist 任务、启动/登录强杀）。
 - 大陆区域拦截（RegionBlockScreen tv+mobile、NetworkUtil、MainActivity 启动网络检测）。
+- VLC 解码链路（2026-10-24 整体删除：LibVLCDownloaderDialog、VlcLibsApi、libVLCVersion 常量与 player 的
+  BuildConfig 字段、`include(":libs:libVLC")`、version catalog 的 vlc 条目、proguard 的 org.videolan keep）。
+  要接回需连同 gradle 依赖、下载器 UI、runtime so 加载一起重新评估，不要只恢复其中一段。
 - 上游 README 的「禁止大陆使用/境内分发」声明；本仓库定位个人本地编译自用，不对外分发。
 
 ## 工作纪律

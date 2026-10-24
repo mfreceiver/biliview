@@ -20,7 +20,6 @@ import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.unit.dp
 import androidx.tv.material3.MaterialTheme
 import androidx.tv.material3.Text
-import cn.vectory.biliview.tv.component.LibVLCDownloaderDialog
 import cn.vectory.biliview.tv.component.settings.SettingsMenuSelectItem
 import cn.vectory.biliview.entity.PlayerType
 import cn.vectory.biliview.tv.screens.settings.SettingsMenuNavItem
@@ -32,7 +31,6 @@ fun PlayerTypeSetting(
 ) {
     val context = LocalContext.current
     var selectedPlayerType by remember { mutableStateOf(Prefs.playerType) }
-    var showLibVLCDownloaderDialog by remember { mutableStateOf(false) }
 
     Box(
         modifier = modifier
@@ -66,10 +64,4 @@ fun PlayerTypeSetting(
         }
     }
 
-    LibVLCDownloaderDialog(
-        show = showLibVLCDownloaderDialog,
-        onHideDialog = {
-            showLibVLCDownloaderDialog = false
-        }
-    )
 }
