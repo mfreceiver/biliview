@@ -49,7 +49,7 @@ import androidx.tv.material3.MaterialTheme
 import androidx.tv.material3.Surface
 import androidx.tv.material3.Text
 import coil.compose.AsyncImage
-import cn.vectory.biliview.R
+import cn.vectory.biliview.shared.R
 import cn.vectory.biliview.tv.component.UpIcon
 import cn.vectory.biliview.entity.carddata.VideoCardData
 import cn.vectory.biliview.ui.theme.BVTheme

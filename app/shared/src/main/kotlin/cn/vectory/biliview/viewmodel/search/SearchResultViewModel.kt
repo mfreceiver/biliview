@@ -12,7 +12,7 @@ import dev.aaa1115910.biliapi.repositories.SearchRepository
 import dev.aaa1115910.biliapi.repositories.SearchType
 import dev.aaa1115910.biliapi.repositories.SearchTypePage
 import dev.aaa1115910.biliapi.repositories.SearchTypeResult
-import cn.vectory.biliview.R
+import cn.vectory.biliview.shared.R
 import cn.vectory.biliview.util.Partition
 import cn.vectory.biliview.util.Prefs
 import cn.vectory.biliview.util.fException

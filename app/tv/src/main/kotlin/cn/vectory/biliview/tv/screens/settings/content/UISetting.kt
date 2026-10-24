@@ -43,7 +43,7 @@ import androidx.tv.material3.ListItem
 import androidx.tv.material3.MaterialTheme
 import androidx.tv.material3.RadioButton
 import androidx.tv.material3.Text
-import cn.vectory.biliview.R
+import cn.vectory.biliview.shared.R
 import cn.vectory.biliview.entity.ThemeType
 import cn.vectory.biliview.tv.component.TvAlertDialog
 import cn.vectory.biliview.tv.component.settings.SettingListItem

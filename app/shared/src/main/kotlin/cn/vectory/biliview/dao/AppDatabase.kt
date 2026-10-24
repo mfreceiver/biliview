@@ -7,7 +7,7 @@ import androidx.room.Room
 import androidx.room.RoomDatabase
 import androidx.room.TypeConverter
 import androidx.room.TypeConverters
-import cn.vectory.biliview.BuildConfig
+import cn.vectory.biliview.shared.BuildConfig
 import cn.vectory.biliview.entity.db.SearchHistoryDB
 import cn.vectory.biliview.entity.db.UserDB
 import io.github.oshai.kotlinlogging.KotlinLogging

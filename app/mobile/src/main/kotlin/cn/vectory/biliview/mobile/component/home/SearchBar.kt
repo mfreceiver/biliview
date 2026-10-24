@@ -55,7 +55,7 @@ import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.zIndex
 import cn.vectory.biliview.BVApp
-import cn.vectory.biliview.R
+import cn.vectory.biliview.shared.R
 import cn.vectory.biliview.mobile.theme.BVMobileTheme
 
 @Composable

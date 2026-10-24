@@ -32,7 +32,7 @@ import androidx.tv.material3.Text
 import dev.aaa1115910.biliapi.http.BiliHttpProxyApi
 import dev.aaa1115910.biliapi.repositories.ChannelRepository
 import cn.vectory.biliview.BVApp
-import cn.vectory.biliview.R
+import cn.vectory.biliview.shared.R
 import cn.vectory.biliview.tv.activities.settings.SpeedTestActivity
 import cn.vectory.biliview.tv.component.TvAlertDialog
 import cn.vectory.biliview.tv.component.settings.SettingListItem

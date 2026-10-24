@@ -25,7 +25,7 @@ import androidx.tv.material3.Button
 import androidx.tv.material3.MaterialTheme
 import androidx.tv.material3.OutlinedButton
 import androidx.tv.material3.Text
-import cn.vectory.biliview.R
+import cn.vectory.biliview.shared.R
 import cn.vectory.biliview.tv.component.TvAlertDialog
 import cn.vectory.biliview.tv.component.settings.SettingListItem
 import cn.vectory.biliview.tv.screens.settings.SettingsMenuNavItem

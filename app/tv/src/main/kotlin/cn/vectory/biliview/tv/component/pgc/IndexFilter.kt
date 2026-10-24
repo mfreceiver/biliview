@@ -57,7 +57,7 @@ import dev.aaa1115910.biliapi.entity.pgc.index.SeasonVersion
 import dev.aaa1115910.biliapi.entity.pgc.index.SpokenLanguage
 import dev.aaa1115910.biliapi.entity.pgc.index.Style
 import dev.aaa1115910.biliapi.entity.pgc.index.Year
-import cn.vectory.biliview.R
+import cn.vectory.biliview.shared.R
 import cn.vectory.biliview.tv.component.TvAlertDialog
 import cn.vectory.biliview.ui.theme.BVTheme
 import cn.vectory.biliview.util.getDisplayName

@@ -28,7 +28,7 @@ import androidx.core.graphics.ColorUtils
 import com.google.zxing.qrcode.decoder.ErrorCorrectionLevel
 import com.google.zxing.qrcode.encoder.Encoder
 import com.google.zxing.qrcode.encoder.QRCode
-import cn.vectory.biliview.R
+import cn.vectory.biliview.shared.R
 import kotlin.math.ceil
 import kotlin.math.min
 import kotlin.math.sqrt

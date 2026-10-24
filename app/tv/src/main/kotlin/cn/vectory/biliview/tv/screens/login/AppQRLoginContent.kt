@@ -25,7 +25,7 @@ import androidx.tv.material3.MaterialTheme
 import androidx.tv.material3.Surface
 import androidx.tv.material3.Text
 import dev.aaa1115910.biliapi.entity.login.QrLoginState
-import cn.vectory.biliview.R
+import cn.vectory.biliview.shared.R
 import cn.vectory.biliview.util.toast
 import cn.vectory.biliview.viewmodel.login.AppQrLoginViewModel
 import dev.aaa1115910.m3qrcode.MaterialShapeQr

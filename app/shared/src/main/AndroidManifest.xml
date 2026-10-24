@@ -12,7 +12,7 @@
     </queries>
 
     <application
-        android:name=".BVApp"
+        android:name="cn.vectory.biliview.BVApp"
         android:allowBackup="true"
         android:enableOnBackInvokedCallback="true"
         android:icon="@mipmap/ic_launcher"

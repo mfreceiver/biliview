@@ -28,7 +28,7 @@ import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.tv.material3.Text
-import cn.vectory.biliview.R
+import cn.vectory.biliview.shared.R
 import cn.vectory.biliview.tv.component.videocard.SmallVideoCard
 import cn.vectory.biliview.tv.activities.video.VideoInfoActivity
 import cn.vectory.biliview.viewmodel.TagViewModel

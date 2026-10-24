@@ -12,7 +12,7 @@ import dev.aaa1115910.biliapi.entity.pgc.PgcItem
 import dev.aaa1115910.biliapi.entity.pgc.PgcType
 import dev.aaa1115910.biliapi.repositories.PgcRepository
 import cn.vectory.biliview.BVApp
-import cn.vectory.biliview.BuildConfig
+import cn.vectory.biliview.shared.BuildConfig
 import cn.vectory.biliview.util.addWithMainContext
 import cn.vectory.biliview.util.addAllWithMainContext
 import cn.vectory.biliview.util.fInfo

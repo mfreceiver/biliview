@@ -1,7 +1,10 @@
 [versions]
 agp = "9.3.1"
+# Kotlin 版本由 AGP 内置 Kotlin 决定（AGP 9.3.1 的 POM 依赖 kotlin-gradle-plugin:2.2.10），
+# 这里只用于 compose/serialization 编译器子插件与纯 JVM 模块的 kotlin.jvm，必须与内置版本一致。
 kotlin = "2.2.10"
-ksp = "2.3.6"
+# KSP ≥2.3.10 才修了「AGP 内置 Kotlin 下的 R 类解析」(google/ksp#2857)。
+ksp = "2.3.12"
 protobuf = "0.10.0"
 versions = "0.52.0"
 
@@ -9,7 +12,6 @@ versions = "0.52.0"
 android-application = { id = "com.android.application", version.ref = "agp" }
 android-library = { id = "com.android.library", version.ref = "agp" }
 compose-compiler = { id = "org.jetbrains.kotlin.plugin.compose", version.ref = "kotlin" }
-kotlin-android = { id = "org.jetbrains.kotlin.android", version.ref = "kotlin" }
 kotlin-jvm = { id = "org.jetbrains.kotlin.jvm", version.ref = "kotlin" }
 kotlin-serialization = { id = "org.jetbrains.kotlin.plugin.serialization", version.ref = "kotlin" }
 

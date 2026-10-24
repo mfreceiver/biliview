@@ -3,7 +3,7 @@ package cn.vectory.biliview.util
 import android.content.Context
 import dev.aaa1115910.biliapi.entity.season.FollowingSeasonStatus
 import dev.aaa1115910.biliapi.entity.season.FollowingSeasonType
-import cn.vectory.biliview.R
+import cn.vectory.biliview.shared.R
 
 fun FollowingSeasonStatus.getDisplayName(context: Context) = when (this) {
     FollowingSeasonStatus.All -> context.getString(R.string.following_season_status_all)

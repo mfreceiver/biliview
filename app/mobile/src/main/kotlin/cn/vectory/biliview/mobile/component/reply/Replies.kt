@@ -32,7 +32,7 @@ import com.origeek.imageViewer.previewer.ImagePreviewerState
 import dev.aaa1115910.biliapi.entity.Picture
 import dev.aaa1115910.biliapi.entity.reply.Comment
 import dev.aaa1115910.biliapi.entity.reply.CommentSort
-import cn.vectory.biliview.BuildConfig
+import cn.vectory.biliview.shared.BuildConfig
 
 @OptIn(ExperimentalMaterial3Api::class, ExperimentalMaterial3ExpressiveApi::class)
 @Composable

@@ -1,7 +1,7 @@
 package cn.vectory.biliview.entity
 
 import android.content.Context
-import cn.vectory.biliview.R
+import cn.vectory.biliview.shared.R
 import cn.vectory.biliview.util.stringRes
 
 enum class ThemeType(private val strRes: Int) {

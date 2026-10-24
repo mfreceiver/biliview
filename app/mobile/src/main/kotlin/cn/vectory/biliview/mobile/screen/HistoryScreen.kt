@@ -26,7 +26,7 @@ import androidx.compose.ui.input.nestedscroll.nestedScroll
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
-import cn.vectory.biliview.R
+import cn.vectory.biliview.shared.R
 import cn.vectory.biliview.mobile.activities.VideoPlayerActivity
 import cn.vectory.biliview.mobile.component.videocard.SmallVideoCard
 import cn.vectory.biliview.util.OnBottomReached

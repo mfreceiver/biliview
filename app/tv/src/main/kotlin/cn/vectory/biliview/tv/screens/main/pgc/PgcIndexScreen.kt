@@ -34,7 +34,7 @@ import androidx.compose.ui.unit.sp
 import androidx.tv.material3.OutlinedButton
 import androidx.tv.material3.Text
 import dev.aaa1115910.biliapi.entity.pgc.PgcType
-import cn.vectory.biliview.R
+import cn.vectory.biliview.shared.R
 import cn.vectory.biliview.tv.component.pgc.IndexFilter
 import cn.vectory.biliview.tv.component.videocard.SeasonCard
 import cn.vectory.biliview.entity.carddata.SeasonCardData

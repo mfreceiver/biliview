@@ -2,7 +2,7 @@ package cn.vectory.biliview.util
 
 import android.content.Context
 import dev.aaa1115910.biliapi.entity.pgc.PgcType
-import cn.vectory.biliview.R
+import cn.vectory.biliview.shared.R
 
 fun PgcType.getDisplayName(context: Context) = when (this) {
     PgcType.Anime -> R.string.pgc_type_anime

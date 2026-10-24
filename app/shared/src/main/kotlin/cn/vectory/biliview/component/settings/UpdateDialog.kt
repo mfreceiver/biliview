@@ -33,7 +33,7 @@ import androidx.compose.ui.window.DialogProperties
 import androidx.core.content.FileProvider
 import androidx.tv.material3.MaterialTheme
 import androidx.tv.material3.ProvideTextStyle
-import cn.vectory.biliview.BuildConfig
+import cn.vectory.biliview.shared.BuildConfig
 import cn.vectory.biliview.network.GithubApi
 import cn.vectory.biliview.network.entity.Release
 import cn.vectory.biliview.ui.theme.BVTheme

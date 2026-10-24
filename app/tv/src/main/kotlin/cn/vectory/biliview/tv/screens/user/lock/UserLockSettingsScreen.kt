@@ -32,7 +32,7 @@ import androidx.compose.ui.unit.dp
 import androidx.tv.material3.MaterialTheme
 import androidx.tv.material3.Surface
 import androidx.tv.material3.Text
-import cn.vectory.biliview.R
+import cn.vectory.biliview.shared.R
 import cn.vectory.biliview.entity.db.UserDB
 import cn.vectory.biliview.repository.UserRepository
 import cn.vectory.biliview.tv.screens.user.UserItem

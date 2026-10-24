@@ -51,7 +51,7 @@ import androidx.tv.material3.IconButton
 import androidx.tv.material3.MaterialTheme
 import androidx.tv.material3.Text
 import dev.aaa1115910.biliapi.entity.search.Hotword
-import cn.vectory.biliview.R
+import cn.vectory.biliview.shared.R
 import cn.vectory.biliview.entity.db.SearchHistoryDB
 import cn.vectory.biliview.tv.activities.search.SearchResultActivity
 import cn.vectory.biliview.tv.component.TvAlertDialog

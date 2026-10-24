@@ -114,7 +114,7 @@ import dev.aaa1115910.biliapi.entity.video.season.Episode
 import dev.aaa1115910.biliapi.http.BiliPlusHttpApi
 import dev.aaa1115910.biliapi.repositories.FavoriteRepository
 import dev.aaa1115910.biliapi.repositories.UserRepository
-import cn.vectory.biliview.R
+import cn.vectory.biliview.shared.R
 import cn.vectory.biliview.entity.proxy.ProxyArea
 import cn.vectory.biliview.player.entity.VideoListItem
 import cn.vectory.biliview.player.entity.VideoListPart

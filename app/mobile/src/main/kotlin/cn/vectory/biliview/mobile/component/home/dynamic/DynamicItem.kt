@@ -55,7 +55,7 @@ import com.origeek.imageViewer.previewer.rememberTransformItemState
 import dev.aaa1115910.biliapi.entity.Picture
 import dev.aaa1115910.biliapi.entity.user.DynamicItem
 import dev.aaa1115910.biliapi.entity.user.DynamicType
-import cn.vectory.biliview.R
+import cn.vectory.biliview.shared.R
 import cn.vectory.biliview.mobile.component.user.UserAvatar
 import cn.vectory.biliview.mobile.theme.BVMobileTheme
 import cn.vectory.biliview.util.ImageSize

@@ -2,7 +2,7 @@ package cn.vectory.biliview.util
 
 import android.content.Context
 import dev.aaa1115910.biliapi.entity.ugc.UgcTypeV2
-import cn.vectory.biliview.R
+import cn.vectory.biliview.shared.R
 
 fun UgcTypeV2.getDisplayName(context: Context) = when (this) {
     UgcTypeV2.Douga -> R.string.ugc_type_v2_douga

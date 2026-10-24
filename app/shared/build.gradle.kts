@@ -2,12 +2,11 @@ plugins {
     alias(gradleLibs.plugins.android.library)
     alias(gradleLibs.plugins.compose.compiler)
     alias(gradleLibs.plugins.google.ksp)
-    alias(gradleLibs.plugins.kotlin.android)
     alias(gradleLibs.plugins.kotlin.serialization)
 }
 
 android {
-    namespace = AppConfiguration.appId
+    namespace = AppConfiguration.appId + ".shared"
     compileSdk = AppConfiguration.compileSdk
 
     defaultConfig {

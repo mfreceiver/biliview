@@ -27,7 +27,7 @@ import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.core.net.toUri
-import cn.vectory.biliview.BuildConfig
+import cn.vectory.biliview.shared.BuildConfig
 import cn.vectory.biliview.mobile.component.preferences.items.textPreference
 import cn.vectory.biliview.mobile.component.preferences.preferenceGroup
 import cn.vectory.biliview.mobile.component.settings.UpdateDialog
@@ -87,7 +87,7 @@ private fun AppIcon(modifier: Modifier = Modifier) {
             modifier = Modifier
                 .width(256.dp)
                 .height(128.dp),
-            painter = painterResource(id = cn.vectory.biliview.R.drawable.ic_launcher_foreground),
+            painter = painterResource(id = cn.vectory.biliview.shared.R.drawable.ic_launcher_foreground),
             contentDescription = null,
             contentScale = ContentScale.FillWidth
         )

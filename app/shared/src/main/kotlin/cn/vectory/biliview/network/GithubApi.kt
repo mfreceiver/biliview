@@ -1,6 +1,6 @@
 package cn.vectory.biliview.network
 
-import cn.vectory.biliview.BuildConfig
+import cn.vectory.biliview.shared.BuildConfig
 import cn.vectory.biliview.network.entity.Release
 import io.ktor.client.HttpClient
 import io.ktor.client.content.ProgressListener

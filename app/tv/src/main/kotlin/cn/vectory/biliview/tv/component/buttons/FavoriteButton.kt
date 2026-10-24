@@ -35,7 +35,7 @@ import androidx.tv.material3.FilterChip
 import androidx.tv.material3.Icon
 import androidx.tv.material3.Text
 import dev.aaa1115910.biliapi.entity.FavoriteFolderMetadata
-import cn.vectory.biliview.R
+import cn.vectory.biliview.shared.R
 import cn.vectory.biliview.tv.component.TvAlertDialog
 import cn.vectory.biliview.ui.theme.BVTheme
 import cn.vectory.biliview.util.swapList

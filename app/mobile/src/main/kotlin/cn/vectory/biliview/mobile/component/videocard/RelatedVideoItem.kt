@@ -28,7 +28,7 @@ import androidx.compose.ui.unit.dp
 import coil.compose.AsyncImage
 import dev.aaa1115910.biliapi.entity.user.Author
 import dev.aaa1115910.biliapi.entity.video.RelatedVideo
-import cn.vectory.biliview.R
+import cn.vectory.biliview.shared.R
 import cn.vectory.biliview.mobile.theme.BVMobileTheme
 import cn.vectory.biliview.util.formatHourMinSec
 

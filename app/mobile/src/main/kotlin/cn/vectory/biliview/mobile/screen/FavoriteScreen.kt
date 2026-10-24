@@ -44,7 +44,7 @@ import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import dev.aaa1115910.biliapi.entity.FavoriteFolderMetadata
-import cn.vectory.biliview.R
+import cn.vectory.biliview.shared.R
 import cn.vectory.biliview.entity.carddata.VideoCardData
 import cn.vectory.biliview.mobile.activities.VideoPlayerActivity
 import cn.vectory.biliview.mobile.component.videocard.SmallVideoCard

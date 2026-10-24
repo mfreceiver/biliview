@@ -18,7 +18,7 @@ import androidx.compose.ui.input.key.key
 import androidx.compose.ui.input.key.type
 import androidx.core.text.HtmlCompat
 import cn.vectory.biliview.BVApp
-import cn.vectory.biliview.R
+import cn.vectory.biliview.shared.R
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.withContext

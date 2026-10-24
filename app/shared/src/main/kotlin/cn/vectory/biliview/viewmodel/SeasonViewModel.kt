@@ -11,7 +11,7 @@ import dev.aaa1115910.biliapi.entity.video.season.SeasonDetail
 import dev.aaa1115910.biliapi.repositories.UserRepository
 import dev.aaa1115910.biliapi.repositories.VideoDetailRepository
 import cn.vectory.biliview.BVApp
-import cn.vectory.biliview.R
+import cn.vectory.biliview.shared.R
 import cn.vectory.biliview.entity.proxy.ProxyArea
 import cn.vectory.biliview.util.Prefs
 import cn.vectory.biliview.util.fInfo

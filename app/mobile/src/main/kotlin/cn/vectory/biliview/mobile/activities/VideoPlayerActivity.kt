@@ -12,7 +12,7 @@ import com.kuaishou.akdanmaku.render.SimpleRenderer
 import com.kuaishou.akdanmaku.ui.DanmakuPlayer
 import dev.aaa1115910.biliapi.entity.ApiType
 import dev.aaa1115910.biliapi.http.BiliHttpApi
-import cn.vectory.biliview.R
+import cn.vectory.biliview.shared.R
 import cn.vectory.biliview.entity.PlayerType
 import cn.vectory.biliview.mobile.screen.VideoPlayerScreen
 import cn.vectory.biliview.mobile.theme.BVMobileTheme

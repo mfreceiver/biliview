@@ -64,7 +64,7 @@ import androidx.tv.material3.Surface
 import androidx.tv.material3.SurfaceDefaults
 import androidx.tv.material3.Text
 import coil.compose.AsyncImage
-import cn.vectory.biliview.R
+import cn.vectory.biliview.shared.R
 import cn.vectory.biliview.entity.BvScheme
 import cn.vectory.biliview.entity.db.UserDB
 import cn.vectory.biliview.repository.UserRepository

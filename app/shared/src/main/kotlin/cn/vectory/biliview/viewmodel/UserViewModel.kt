@@ -9,8 +9,8 @@ import dev.aaa1115910.biliapi.http.BiliHttpApi
 import dev.aaa1115910.biliapi.http.entity.AuthFailureException
 import dev.aaa1115910.biliapi.http.entity.user.MyInfoData
 import cn.vectory.biliview.BVApp
-import cn.vectory.biliview.BuildConfig
-import cn.vectory.biliview.R
+import cn.vectory.biliview.shared.BuildConfig
+import cn.vectory.biliview.shared.R
 import cn.vectory.biliview.repository.UserRepository
 import cn.vectory.biliview.util.Prefs
 import cn.vectory.biliview.util.fInfo

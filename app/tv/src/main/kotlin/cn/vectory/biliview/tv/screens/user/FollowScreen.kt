@@ -45,7 +45,7 @@ import androidx.tv.material3.MaterialTheme
 import androidx.tv.material3.Surface
 import androidx.tv.material3.Text
 import coil.compose.AsyncImage
-import cn.vectory.biliview.R
+import cn.vectory.biliview.shared.R
 import cn.vectory.biliview.tv.component.LoadingTip
 import cn.vectory.biliview.tv.activities.video.UpInfoActivity
 import cn.vectory.biliview.ui.theme.BVTheme

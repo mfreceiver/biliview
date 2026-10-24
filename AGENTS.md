@@ -22,6 +22,19 @@
 - 常用任务：`./gradlew :app:assembleDefaultDebug`、`./gradlew :app:assembleDefaultRelease`。
 - 维度：flavor `default` × buildType `debug`/`release`（alpha、r8Test buildType 与 lite flavor 已裁剪移除）。
 
+## Kotlin 与 AGP 9 纪律（勿回退）
+
+- 10 个 Android 模块（app 系 ×4、player 系 ×5、utils）编译走 **AGP 9 内置 Kotlin**，**禁止再应用
+  `org.jetbrains.kotlin.android`**（会与 AGP 自注册的 `kotlin` 扩展撞名：`Cannot add extension with name 'kotlin'`）。
+- 内置 Kotlin 版本由 AGP 决定（AGP 9.3.1 → Kotlin 2.2.10，见其 POM 的 `kotlin-gradle-plugin` 依赖）；
+  catalog 里 `kotlin = "2.2.10"` 只用于 `org.jetbrains.kotlin.plugin.compose` / `…plugin.serialization` 子插件
+  与纯 JVM 模块的 `kotlin.jvm`，**必须与内置版本一致**。抬 Kotlin 版本只能靠 buildscript classpath 覆盖 KGP。
+- KSP 需 ≥2.3.10（内置 Kotlin 下的 R 类解析修复，google/ksp#2857）；当前 2.3.12。
+- gradle.properties **不再有任何 AGP 9 逃生口**（`builtInKotlin` / `newDsl` / `uniquePackageNames` 均已移除）。
+- namespace 唯一：`:app` = `AppConfiguration.appId`（`cn.vectory.biliview`），`:app:shared` =
+  `cn.vectory.biliview.shared`（2026-10-24 拆分，R/BuildConfig 引用在 shared 及其消费者里都用 `.shared.` 前缀；
+  shared 的 manifest 是应用 manifest 的实际来源，其中 `.BVApp` 必须写全限定名）。
+
 ## 发版 ABI 纪律（强制，勿删）
 
 - `debug`：仅 `x86`（本机模拟器用）。

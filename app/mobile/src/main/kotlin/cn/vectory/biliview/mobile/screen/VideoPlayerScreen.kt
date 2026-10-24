@@ -81,7 +81,7 @@ import com.origeek.imageViewer.previewer.rememberPreviewerState
 import dev.aaa1115910.biliapi.entity.Picture
 import dev.aaa1115910.biliapi.entity.reply.Comment
 import dev.aaa1115910.biliapi.entity.reply.CommentSort
-import cn.vectory.biliview.R
+import cn.vectory.biliview.shared.R
 import cn.vectory.biliview.mobile.activities.VideoPlayerActivity
 import cn.vectory.biliview.mobile.component.player.VideoPlayerPages
 import cn.vectory.biliview.mobile.component.reply.CommentItem

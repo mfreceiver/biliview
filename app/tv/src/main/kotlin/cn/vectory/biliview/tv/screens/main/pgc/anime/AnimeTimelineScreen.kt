@@ -37,7 +37,7 @@ import dev.aaa1115910.biliapi.entity.ApiType
 import dev.aaa1115910.biliapi.entity.season.Timeline
 import dev.aaa1115910.biliapi.entity.season.TimelineFilter
 import dev.aaa1115910.biliapi.repositories.SeasonRepository
-import cn.vectory.biliview.R
+import cn.vectory.biliview.shared.R
 import cn.vectory.biliview.tv.component.videocard.SeasonCard
 import cn.vectory.biliview.entity.carddata.SeasonCardData
 import cn.vectory.biliview.tv.activities.video.SeasonInfoActivity

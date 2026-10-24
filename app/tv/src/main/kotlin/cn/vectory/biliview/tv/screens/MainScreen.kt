@@ -31,7 +31,7 @@ import androidx.compose.ui.unit.dp
 import androidx.tv.material3.DrawerValue
 import androidx.tv.material3.NavigationDrawer
 import androidx.tv.material3.rememberDrawerState
-import cn.vectory.biliview.R
+import cn.vectory.biliview.shared.R
 import cn.vectory.biliview.tv.component.UserPanel
 import cn.vectory.biliview.tv.activities.settings.SettingsActivity
 import cn.vectory.biliview.tv.activities.user.FavoriteActivity

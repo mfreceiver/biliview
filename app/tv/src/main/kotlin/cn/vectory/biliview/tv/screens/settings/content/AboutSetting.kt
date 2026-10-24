@@ -22,8 +22,8 @@ import androidx.compose.ui.unit.dp
 import androidx.tv.material3.Button
 import androidx.tv.material3.MaterialTheme
 import androidx.tv.material3.Text
-import cn.vectory.biliview.BuildConfig
-import cn.vectory.biliview.R
+import cn.vectory.biliview.shared.BuildConfig
+import cn.vectory.biliview.shared.R
 import cn.vectory.biliview.network.GithubApi
 import cn.vectory.biliview.tv.component.settings.UpdateDialog
 import cn.vectory.biliview.tv.screens.settings.SettingsMenuNavItem

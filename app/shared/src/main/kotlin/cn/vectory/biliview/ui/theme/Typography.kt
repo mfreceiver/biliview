@@ -4,7 +4,7 @@ import androidx.compose.ui.text.font.Font
 import androidx.compose.ui.text.font.FontFamily
 import androidx.compose.ui.text.font.FontWeight
 import androidx.tv.material3.Typography
-import cn.vectory.biliview.R
+import cn.vectory.biliview.shared.R
 
 private val notoMathFont = Font(R.font.noto_sans_math_regular, FontWeight.Normal)
 private val notoFontFamily = FontFamily(notoMathFont)

@@ -38,7 +38,7 @@ import androidx.compose.ui.unit.sp
 import androidx.tv.material3.ListItem
 import androidx.tv.material3.MaterialTheme
 import androidx.tv.material3.Text
-import cn.vectory.biliview.R
+import cn.vectory.biliview.shared.R
 import cn.vectory.biliview.tv.screens.settings.content.AboutSetting
 import cn.vectory.biliview.tv.screens.settings.content.ApiSetting
 import cn.vectory.biliview.tv.screens.settings.content.AudioSetting

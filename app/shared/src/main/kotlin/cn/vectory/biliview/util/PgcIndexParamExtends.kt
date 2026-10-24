@@ -15,7 +15,7 @@ import dev.aaa1115910.biliapi.entity.pgc.index.SeasonVersion
 import dev.aaa1115910.biliapi.entity.pgc.index.SpokenLanguage
 import dev.aaa1115910.biliapi.entity.pgc.index.Style
 import dev.aaa1115910.biliapi.entity.pgc.index.Year
-import cn.vectory.biliview.R
+import cn.vectory.biliview.shared.R
 
 fun PgcIndexParam.getDisplayName(context: Context) = when (this) {
     is IndexOrder ->

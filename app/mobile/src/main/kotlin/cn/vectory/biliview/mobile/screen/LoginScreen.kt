@@ -59,7 +59,7 @@ import com.geetest.sdk.GT3GeetestUtils
 import com.geetest.sdk.GT3Listener
 import dev.aaa1115910.biliapi.entity.login.QrLoginState
 import dev.aaa1115910.biliapi.repositories.SendSmsState
-import cn.vectory.biliview.R
+import cn.vectory.biliview.shared.R
 import cn.vectory.biliview.mobile.theme.BVMobileTheme
 import cn.vectory.biliview.util.calculateWindowSizeClassInPreview
 import cn.vectory.biliview.util.toast

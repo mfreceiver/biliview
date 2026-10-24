@@ -70,8 +70,8 @@ import dev.aaa1115910.biliapi.repositories.FavoriteRepository
 import dev.aaa1115910.biliapi.repositories.HistoryRepository
 import dev.aaa1115910.biliapi.repositories.SeasonRepository
 import dev.aaa1115910.biliapi.repositories.UserRepository
-import cn.vectory.biliview.BuildConfig
-import cn.vectory.biliview.R
+import cn.vectory.biliview.shared.BuildConfig
+import cn.vectory.biliview.shared.R
 import cn.vectory.biliview.entity.carddata.SeasonCardData
 import cn.vectory.biliview.entity.carddata.VideoCardData
 import cn.vectory.biliview.entity.proxy.ProxyArea

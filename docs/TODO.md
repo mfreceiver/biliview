@@ -26,10 +26,15 @@
 ## 发版与工程化
 
 - [ ] 工具链升级收尾（主体已完成 2026-10-24：Gradle 8.14.3→9.7.1、AGP 8.11.1→9.3.1、Kotlin 2.2.0→2.2.10、
-      KSP 2.2.0-2.0.2→2.3.6、protobuf 插件 0.9.5→0.10.0，对齐 fongmi-tv/dshdroid 本机基线；APK 命名迁
+      KSP 2.2.0-2.0.2→2.3.12、protobuf 插件 0.9.5→0.10.0，对齐 fongmi-tv/dshdroid 本机基线；APK 命名迁
       androidComponents.onVariants；assembleDebug/Release + release_assert_apk.sh 全绿。偏离原计划的说明：
       Kotlin 取 2.2.10 而非 2.4.21——为对齐本机基线且绕开 R8≥9.1.29 约束，升 2.4 时重评；AGP 钉 9.3.1——
-      9.3.3 未验证且无必要，取 9.3 最新 patch 时一并回归）。剩余项：
+      9.3.3 未验证且无必要，取 9.3 最新 patch 时一并回归）。2026-10-24 二次收尾：10 个 Android 模块已迁到
+      AGP 9 内置 Kotlin（删 org.jetbrains.kotlin.android；AGP 9.3.1 的 POM 依赖 kotlin-gradle-plugin:2.2.10，
+      故 catalog 的 kotlin=2.2.10 只喂 compose/serialization 子插件与纯 JVM 模块，必须与内置版本一致）；
+      :app:shared 独立为 cn.vectory.biliview.shared（:app 独占 cn.vectory.biliview，R/BuildConfig 引用随之
+      迁移 82 个文件，shared 的 manifest 里 .BVApp 改全限定）；gradle.properties 里三处 AGP 9 逃生口
+      （builtInKotlin / newDsl / uniquePackageNames）已全部清零。剩余项：
       ① 发版前实机门禁：minified release 的 R8 反射回归冒烟。已按反射面排查加固（2026-10-24）：
       akdanmaku 整库 keep、`-keep class * extends com.google.protobuf.GeneratedMessage { *; }`
       （gRPC 错误路径经 Class.forName(服务端 typeUrl) + Any.unpack 反射取 getDefaultInstance，
@@ -37,12 +42,9 @@
       `-keepattributes Signature`（泛型 serializer 查找必需，库自带规则不保）、
       SourceFile/LineNumberTable（崩溃栈可读，代价 +1.8MB APK）。待实测：弹幕/登录/推荐流/播放/搜索/
       历史 Room，以及 gRPC 错误路径（登录失败、-352 退避、播放报错）是否返回正常文案而非 CNFE；
-      ② AGP 10 逃生口债务：移除 android.builtInKotlin=false（11 个模块去 kotlin.android 改内置 Kotlin）与
-      android.newDsl=false（android{} 块按新 DSL 重写）；
-      ③ android.uniquePackageNames=false 债务：:app 与 :app:shared 共用 namespace cn.vectory.biliview，
-      长期解法是给 shared 单独 namespace（牵动 R/BuildConfig 引用），或永久保留并在 AGENTS.md 注明刻意决定；
-      ④ versions 插件 0.52.0 在 Gradle 9 下未跑过 dependencyUpdates，待确认；
-      ⑤ 后续升级项：Kotlin 2.4、AGP 9.3 最新 patch；暂不启用 configuration cache
+      ② versions 插件 0.52.0 在 Gradle 9 下未跑过 dependencyUpdates，待确认；
+      ③ 后续升级项：Kotlin 2.4（需 classpath 覆盖 KGP 才能抬内置 Kotlin 版本）、AGP 9.3 最新 patch；
+      暂不启用 configuration cache
 - [ ] 上游同步策略：与 aaa1115910/bv@develop 的更新如何跟进（本仓库历史已重新初始化，
       无法直接 merge，需 vendor 重导入或 patch 流程）
 - [ ] R8 规则的遗留盲区（2026-10-24 加固后复盘，发货 APK 的 mapping 取证）：

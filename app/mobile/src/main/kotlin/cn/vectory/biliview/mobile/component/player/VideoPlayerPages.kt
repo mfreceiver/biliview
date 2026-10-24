@@ -81,7 +81,7 @@ import dev.aaa1115910.biliapi.entity.video.VideoPage
 import dev.aaa1115910.biliapi.entity.video.season.Episode
 import dev.aaa1115910.biliapi.entity.video.season.Section
 import dev.aaa1115910.biliapi.entity.video.season.UgcSeason
-import cn.vectory.biliview.R
+import cn.vectory.biliview.shared.R
 import cn.vectory.biliview.mobile.theme.BVMobileTheme
 import cn.vectory.biliview.util.formatHourMinSec
 

@@ -92,7 +92,7 @@ import androidx.tv.material3.Text
 import coil.compose.AsyncImage
 import dev.aaa1115910.biliapi.entity.video.season.Episode
 import dev.aaa1115910.biliapi.entity.video.season.PgcSeason
-import cn.vectory.biliview.R
+import cn.vectory.biliview.shared.R
 import cn.vectory.biliview.entity.proxy.ProxyArea
 import cn.vectory.biliview.player.entity.VideoListPgcEpisode
 import cn.vectory.biliview.repository.VideoInfoRepository

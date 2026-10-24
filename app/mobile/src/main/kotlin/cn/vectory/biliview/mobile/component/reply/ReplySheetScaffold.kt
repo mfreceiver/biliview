@@ -40,7 +40,7 @@ import dev.aaa1115910.biliapi.entity.reply.Comment
 import dev.aaa1115910.biliapi.entity.reply.CommentReplyPage
 import dev.aaa1115910.biliapi.entity.reply.CommentSort
 import dev.aaa1115910.biliapi.repositories.VideoDetailRepository
-import cn.vectory.biliview.BuildConfig
+import cn.vectory.biliview.shared.BuildConfig
 import cn.vectory.biliview.util.OnBottomReached
 import cn.vectory.biliview.util.Prefs
 import io.github.oshai.kotlinlogging.KotlinLogging

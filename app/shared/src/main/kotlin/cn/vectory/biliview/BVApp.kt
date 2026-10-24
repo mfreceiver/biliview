@@ -20,6 +20,7 @@ import cn.vectory.biliview.dao.AppDatabase
 import cn.vectory.biliview.entity.AuthData
 import cn.vectory.biliview.entity.db.UserDB
 import cn.vectory.biliview.network.HttpServer
+import cn.vectory.biliview.shared.BuildConfig
 import cn.vectory.biliview.util.LogCatcherUtil
 import cn.vectory.biliview.util.Prefs
 import kotlinx.coroutines.runBlocking

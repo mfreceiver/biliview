@@ -40,7 +40,7 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.tv.material3.ListItem
 import androidx.tv.material3.Text
-import cn.vectory.biliview.R
+import cn.vectory.biliview.shared.R
 import cn.vectory.biliview.network.HttpServer
 import cn.vectory.biliview.ui.theme.BVTheme
 import cn.vectory.biliview.util.LogCatcherUtil
