@@ -21,15 +21,23 @@ val signingProperties = Properties().apply {
         logger.lifecycle("signing.properties not found; release APKs will be unsigned")
     }
 }
+// Read keys defensively: an incomplete signing.properties must not crash configuration
+// (which would drag debug builds down with it); only release builds fail closed on it.
+val signingStoreFile = signingProperties.getProperty("storeFile")?.takeIf { it.isNotBlank() }
+val signingStorePassword = signingProperties.getProperty("storePassword")?.takeIf { it.isNotBlank() }
+val signingKeyAlias = signingProperties.getProperty("keyAlias")?.takeIf { it.isNotBlank() }
+val signingReady =
+    signingStoreFile != null && signingStorePassword != null && signingKeyAlias != null &&
+        rootProject.file(signingStoreFile).isFile
 
 android {
     signingConfigs {
-        if (signingProp.exists()) {
+        if (signingReady) {
             create("release") {
-                storeFile = rootProject.file(signingProperties.getProperty("storeFile"))
-                storePassword = signingProperties.getProperty("storePassword")
-                keyAlias = signingProperties.getProperty("keyAlias")
-                keyPassword = signingProperties.getProperty("storePassword")
+                storeFile = rootProject.file(signingStoreFile)
+                storePassword = signingStorePassword
+                keyAlias = signingKeyAlias
+                keyPassword = signingStorePassword
             }
         }
     }
@@ -63,7 +71,19 @@ android {
                 getDefaultProguardFile("proguard-android-optimize.txt"),
                 "proguard-rules.pro"
             )
-            if (signingProp.exists()) signingConfig = signingConfigs.getByName("release")
+            if (signingReady) {
+                signingConfig = signingConfigs.getByName("release")
+            } else if (signingProp.exists()) {
+                // signing.properties present but incomplete/invalid: fail release builds
+                // (fail-closed) only; debug builds keep their default signing config.
+                gradle.taskGraph.whenReady {
+                    if (allTasks.any { it.name.contains("Release", ignoreCase = true) }) {
+                        throw GradleException(
+                            "signing.properties is incomplete (need storeFile/storePassword/keyAlias): refusing to build an unsigned/under-configured release"
+                        )
+                    }
+                }
+            }
         }
         debug {
             isMinifyEnabled = false

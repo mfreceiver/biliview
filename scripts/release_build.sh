@@ -58,6 +58,11 @@ if ((PUBLISH_ONLY)); then
  APK_PATH="APK/$ARCHIVE"; [[ -f "$APK_PATH" ]] || fail "archive missing: $APK_PATH"
  [[ -f APK/SHA256SUMS ]] || fail 'APK/SHA256SUMS missing'
  sha256sum -c APK/SHA256SUMS >/dev/null || fail 'SHA256SUMS verification failed'
+ grep -qE "APK/$ARCHIVE\$" APK/SHA256SUMS || fail "SHA256SUMS has no entry for $ARCHIVE"
+ MAPPING="APK/biliview-$VNAME-$SHORT-mapping.txt"
+ [[ -f "$MAPPING" ]] || fail "mapping archive missing: $MAPPING"
+ grep -qE "APK/biliview-$VNAME-$SHORT-mapping\.txt\$" APK/SHA256SUMS || fail "SHA256SUMS has no entry for $MAPPING"
+ [[ "$(git cat-file -t "$TAG")" == tag ]] || fail "tag $TAG is not annotated ($(git cat-file -t "$TAG" 2>/dev/null || echo unresolved))"
  NOTE_FILE="APK/biliview-$VNAME-$SHORT.md"; [[ -f "$NOTE_FILE" ]] || fail "release notes missing: $NOTE_FILE"
  scripts/release_assert_apk.sh "$APK_PATH" "$APK_VNAME" "$VCODE" "$CERT" universal
 else
@@ -65,14 +70,30 @@ else
  if ! REMOTE_TAG="$(timeout 30 git ls-remote --tags origin "refs/tags/$TAG" 2>&1)"; then fail 'remote tag query failed (fail-closed)'; fi
  [[ -z "$REMOTE_TAG" ]] || fail "remote tag already exists: $TAG"
  BEST_CODE=0; BEST_SOURCE=''
-  while IFS= read -r tag; do
-   [[ "$tag" =~ ^v([0-9]+\.[0-9]+\.[0-9]+)(\.[0-9]+)?\.r([0-9]+)\.([0-9a-f]+)$ ]] || continue
-   TAG_CODE="${BASH_REMATCH[3]}"
-   TAG_COMMIT="$(git rev-parse "$tag^{commit}")" || fail "cannot resolve tag $tag"
-   ACTUAL_CODE="$(git rev-list --count "$TAG_COMMIT")"
-   [[ "$ACTUAL_CODE" == "$TAG_CODE" ]] || fail "tag $tag versionCode $TAG_CODE differs from target commit count $ACTUAL_CODE"
-   if ((TAG_CODE > BEST_CODE)); then BEST_CODE="$TAG_CODE"; BEST_SOURCE="tag $tag"; fi
-  done < <(git tag -l 'v*')
+  track_tag() {
+   local name="$1" origin="$2"
+   [[ "$name" =~ ^v([0-9]+\.[0-9]+\.[0-9]+)(\.[0-9]+)?\.r([0-9]+)\.([0-9a-f]+)$ ]] || fail "malformed v* tag (fail-closed): $name"
+   local code="${BASH_REMATCH[3]}"
+   if git rev-parse -q --verify "refs/tags/$name" >/dev/null; then
+    local commit actual
+    commit="$(git rev-parse "$name^{commit}")" || fail "cannot resolve tag $name"
+    actual="$(git rev-list --count "$commit")"
+    [[ "$actual" == "$code" ]] || (( 10#$actual == 10#$code )) || fail "tag $name versionCode $code differs from target commit count $actual"
+   elif [[ "$origin" == local ]]; then
+    fail "cannot resolve local tag $name"
+   fi
+   # Remote-only tags skip the commit-count consistency check but still count numerically.
+   # 10# guards against leading-zero (octal) misinterpretation.
+   if (( 10#$code > 10#$BEST_CODE )); then BEST_CODE="$code"; BEST_SOURCE="$origin tag $name"; fi
+  }
+  while IFS= read -r tag; do track_tag "$tag" local; done < <(git tag -l 'v*')
+  REMOTE_TAGS="$(timeout 30 git ls-remote --tags origin 2>&1)" || fail 'remote tag listing failed (fail-closed)'
+  while IFS= read -r line; do
+   name="${line##*refs/tags/}"
+   [[ "$name" == *'^{}' ]] && continue
+   [[ -n "$name" ]] || continue
+   track_tag "$name" remote
+  done <<<"$REMOTE_TAGS"
   SDK="$(sed -nE 's/^sdk\.dir=(.*)$/\1/p' local.properties 2>/dev/null | head -1 || true)"
   [[ -n "$SDK" && -d "$SDK" ]] || SDK="${ANDROID_HOME:-${ANDROID_SDK_ROOT:-}}"
   [[ -d "$SDK" ]] || fail 'Android SDK unavailable for archive history checks'
@@ -83,14 +104,14 @@ else
    base="$(basename "$f")"
    [[ "$base" =~ ^biliview-([0-9]+\.[0-9]+\.[0-9]+(\.[0-9]+)?\.r([0-9]+)\.([0-9a-f]+))-[0-9a-f]+-universal-release\.apk$ ]] || continue
    FILE_VERSION="${BASH_REMATCH[1]}"; FILE_CODE="${BASH_REMATCH[3]}"
-   (( FILE_CODE == VCODE )) && fail "archive versionCode collision: $f"
+   (( 10#$FILE_CODE == 10#$VCODE )) && fail "archive versionCode collision: $f"
    BADGING="$("$BT_DIR/aapt" dump badging "$f" 2>/dev/null)" || fail "cannot read archived APK: $f"
    EMBED_NAME="$(grep -oP "versionName='\K[^']+" <<<"$BADGING" | head -1)"
    EMBED_CODE="$(grep -oP "versionCode='\K[^']+" <<<"$BADGING" | head -1)"
    [[ "$EMBED_NAME" == "$FILE_VERSION.release" && "$EMBED_CODE" == "$FILE_CODE" ]] || fail "archive filename/embedded version mismatch: $f ($EMBED_NAME+$EMBED_CODE)"
-   if ((FILE_CODE > BEST_CODE)); then BEST_CODE="$FILE_CODE"; BEST_SOURCE="$f"; fi
+   if (( 10#$FILE_CODE > 10#$BEST_CODE )); then BEST_CODE="$FILE_CODE"; BEST_SOURCE="$f"; fi
   done
-  if ((BEST_CODE > 0)); then (( VCODE > BEST_CODE )) || fail "versionCode $VCODE is not greater than historical maximum $BEST_CODE ($BEST_SOURCE)"; fi
+  if (( 10#$BEST_CODE > 0 )); then (( 10#$VCODE > 10#$BEST_CODE )) || fail "versionCode $VCODE is not greater than historical maximum $BEST_CODE ($BEST_SOURCE)"; fi
   for f in APK/biliview-*.apk; do [[ -e "$f" ]] || continue; [[ "$(basename "$f")" != *"$VNAME"* ]] || fail "archive version already exists: $f"; done
   echo "==> Version $APK_VNAME (versionCode=$VCODE; tag=$TAG)"
  ./gradlew :app:assembleDefaultRelease --console=plain
@@ -102,9 +123,13 @@ else
  if ((DIRTY)); then echo '✅ Build validation passed; dirty-tree mode skipped archive/tag/publish'; exit 0; fi
  mkdir -p APK
  cp "$SRC" "APK/$ARCHIVE"
+ # Archive the R8 mapping alongside the APK (path discovered, same discipline as the APK).
+ mapfile -t MAPPING_FOUND < <(find app/build/outputs -type f -name mapping.txt -path '*default/release/*' -print 2>/dev/null | sort)
+ ((${#MAPPING_FOUND[@]} == 1)) || fail "expected exactly one defaultRelease mapping.txt, found ${#MAPPING_FOUND[@]}"
+ cp "${MAPPING_FOUND[0]}" "APK/biliview-$VNAME-$SHORT-mapping.txt"
  # Keep prior version archives; regenerate checksums over strict BiliView release archive names.
  : > APK/SHA256SUMS
- for f in APK/biliview-*-universal-release.apk; do [[ -f "$f" ]] || continue; sha256sum "$f" >> APK/SHA256SUMS; done
+ for f in APK/biliview-*-universal-release.apk APK/biliview-*-mapping.txt; do [[ -f "$f" ]] || continue; sha256sum "$f" >> APK/SHA256SUMS; done
  PREV="$(git describe --tags --abbrev=0 --match 'v*' 2>/dev/null || true)"
  RANGE="${PREV:+$PREV..}HEAD"
  NOTE_FILE="APK/biliview-$VNAME-$SHORT.md"
@@ -120,12 +145,12 @@ if ((PUBLISH || PUBLISH_ONLY)); then
  [[ -n "$USERNAME" && -n "$PASSWORD" ]] || fail 'Gitea credentials incomplete'
  API=http://192.168.3.252:11330/api/v1/repos/mfreceiver/biliview
  curl_config() { printf '%s\0%s\0' "$USERNAME" "$PASSWORD" | python3 -c 'import json,sys; u,p,_=sys.stdin.buffer.read().decode().split("\0",2); print("user = "+json.dumps(u+":"+p))'; }
-  curl_auth() { curl_config | curl -K - -sS --fail-with-body "$@"; }
+  curl_auth() { curl_config | curl -K - -sS --fail-with-body --connect-timeout 10 --max-time 120 "$@"; }
  # Push the already-verified commit/tag; Gitea release/asset creation is repeatable on --publish-only.
  timeout 120 git push origin main
  timeout 120 git push origin "$TAG"
  RELEASE_JSON="$(mktemp)"; trap 'rm -f "$RELEASE_JSON"' EXIT
- STATUS="$(curl_config | curl -K - -sS -o "$RELEASE_JSON" -w '%{http_code}' "$API/releases/tags/$TAG")" || fail 'Gitea release lookup failed'
+ STATUS="$(curl_config | curl -K - -sS --connect-timeout 10 --max-time 120 -o "$RELEASE_JSON" -w '%{http_code}' "$API/releases/tags/$TAG")" || fail 'Gitea release lookup failed'
  if [[ "$STATUS" == 404 ]]; then
    BODY="$(python3 -c 'import json,sys; print(json.dumps({"tag_name":sys.argv[1],"name":sys.argv[1],"body":open(sys.argv[2],encoding="utf8").read()}))' "$TAG" "$NOTE_FILE")"
    STATUS="$(curl_auth -o "$RELEASE_JSON" -w '%{http_code}' -X POST -H 'Content-Type: application/json' -d "$BODY" "$API/releases")" || fail 'Gitea release creation failed'
@@ -157,7 +182,7 @@ PYASSET
       ASSET_URL="$(python3 -c 'import json,sys; print(json.loads(sys.argv[1]).get("url", ""))' "$EXISTING")"
       [[ -n "$ASSET_URL" ]] || fail "existing asset has no sha256 or download URL: $ARCHIVE"
       DOWNLOAD="$(mktemp)"
-      HTTP="$(curl_auth -L -o "$DOWNLOAD" -w '%{http_code}' "$ASSET_URL")" || { rm -f "$DOWNLOAD"; fail "remote asset download failed: $ARCHIVE"; }
+      HTTP="$(curl_auth --max-time 300 -L -o "$DOWNLOAD" -w '%{http_code}' "$ASSET_URL")" || { rm -f "$DOWNLOAD"; fail "remote asset download failed: $ARCHIVE"; }
       [[ "$HTTP" =~ ^2 ]] || { rm -f "$DOWNLOAD"; fail "remote asset download HTTP $HTTP"; }
       REMOTE_SHA="$(sha256sum "$DOWNLOAD" | cut -d' ' -f1)"; rm -f "$DOWNLOAD"
     fi
@@ -175,7 +200,7 @@ PYASSET
       ASSET_URL="$(python3 -c 'import json,sys; print(json.loads(sys.argv[1]).get("url", ""))' "$EXISTING")"
       [[ -n "$ASSET_URL" ]] || fail "uploaded asset has no sha256 or download URL: $ARCHIVE"
       DOWNLOAD="$(mktemp)"
-      HTTP="$(curl_auth -L -o "$DOWNLOAD" -w '%{http_code}' "$ASSET_URL")" || { rm -f "$DOWNLOAD"; fail "uploaded asset download failed: $ARCHIVE"; }
+      HTTP="$(curl_auth --max-time 300 -L -o "$DOWNLOAD" -w '%{http_code}' "$ASSET_URL")" || { rm -f "$DOWNLOAD"; fail "uploaded asset download failed: $ARCHIVE"; }
       [[ "$HTTP" =~ ^2 ]] || { rm -f "$DOWNLOAD"; fail "uploaded asset download HTTP $HTTP"; }
       REMOTE_SHA="$(sha256sum "$DOWNLOAD" | cut -d' ' -f1)"; rm -f "$DOWNLOAD"
     fi

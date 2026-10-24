@@ -28,14 +28,18 @@
 
 ## 发版与工程化
 
-- [ ] 配套收尾（发版脚本主体已落地并通过审阅）：修复审阅发现的应修项——版本单调门禁可绕过
-      （tag 格式不符静默放行、未比对远端 tag、前导零八进制陷阱）、signing.properties 缺键时
-      debug 构建被拖死、curl 无超时、--publish-only 未校验 SHA256SUMS 含当前归档/tag annotated、
-      assert 补 debuggable/testOnly/min/targetSdk/单签名者断言、mapping.txt 归档
-      （origin 已统一为 http://192.168.3.252:11330/mfreceiver/biliview.git）
-- [ ] 工具链对齐 mitv 评估：AGP 8.11.1 / Gradle 8.14.3 / Kotlin 2.2.0 →
-      AGP 9.3.1 / Gradle 9.7.1（compileSdk/targetSdk 36 vs 35）；需评估 Compose 编译器
-      与依赖联动后统一，不盲目升级
+- [ ] 工具链升级执行（评估已完成 2026-10-24，结论：拆步迁移、发版线暂缓机械对齐 AGP 9.3.1+Gradle 9.7.1）：
+      ① 先在 AGP 8.11.1 上把 app/build.gradle.kts:122-133 的 applicationVariants/ApkVariantOutputImpl
+      迁到 androidComponents 公共 API（保持 APK 命名与 release_build.sh 契约）；
+      ② AGP 9.3.x + Gradle 9.5.0+ + Kotlin 2.4.21 + Compose/serialization 同版 + KSP 2.3.x 作为同一联动门
+      （Kotlin 2.4 产物需 R8≥9.1.29，AGP 8.11.1 自带 R8 8.11.18 不满足，禁止先单升 Kotlin；
+      需实测 Room/Koin/material-symbols KSP、protobuf 0.9.5、versions 0.52.0 对 Gradle 9 兼容；
+      移除 Android 模块 kotlin.android 依赖或显式关 builtInKotlin 过桥；app 与 shared 同 appId 需过
+      uniquePackageNames 验证；暂不启用 configuration cache、不动 Compose UI/TV/Media3/Ktor）；
+      ③ 过门后 wrapper 单升 9.7.1，再过 minified release R8 strictFullModeForKeepRules 反射回归
+      （弹幕/Ktor/serialization/Room/DI/gRPC/播放）与 arm 双 ABI、16KB zipalign、真机门禁。
+      依据：KGP 官方矩阵 2.4.20–21 覆盖 AGP≤9.3.1/Gradle≤9.7.0；AGP 9.3.3 含多项 R8 修复，
+      迁移时取 9.3 分支最新 patch 而非钉 9.3.1。SDK 36 非升级理由（8.11 已支持）；ABI DSL abiFilters 不受 AGP9 废弃影响
 - [ ] 上游同步策略：与 aaa1115910/bv@develop 的更新如何跟进（本仓库历史已重新初始化，
       无法直接 merge，需 vendor 重导入或 patch 流程）
 

@@ -30,6 +30,15 @@ NAME="$(grep -oP "versionName='\K[^']+" <<<"$BADGING" | head -1)"
 CODE="$(grep -oP "versionCode='\K[^']+" <<<"$BADGING" | head -1)"
 [[ "$NAME" == "$EXPECT_NAME" ]] || fail "versionName=$NAME expected $EXPECT_NAME"
 [[ "$CODE" == "$EXPECT_CODE" ]] || fail "versionCode=$CODE expected $EXPECT_CODE"
+MINSDK="$(grep -oP "^sdkVersion:'\K[0-9]+" <<<"$BADGING" | head -1)"
+TGTSDK="$(grep -oP "^targetSdkVersion:'\K[0-9]+" <<<"$BADGING" | head -1)"
+[[ -n "$MINSDK" && -n "$TGTSDK" ]] || fail "sdkVersion/targetSdkVersion missing from badging"
+[[ "$MINSDK" == 24 ]] || fail "minSdk=$MINSDK expected 24"
+[[ "$TGTSDK" == 36 ]] || fail "targetSdk=$TGTSDK expected 36"
+if grep -q '^application-debuggable' <<<"$BADGING"; then fail 'application-debuggable must not be set'; fi
+# testOnly is not reliably reported in badging; inspect the binary manifest instead.
+MANIFEST_TREE="$("$BT/aapt" dump xmltree "$APK" AndroidManifest.xml 2>/dev/null)" || fail 'aapt xmltree failed'
+if grep -qi 'testOnly' <<<"$MANIFEST_TREE"; then fail 'testOnly must not be set'; fi
 python3 - "$APK" "$BADGING" <<'PY' || fail "ABI/native library assertion failed"
 import re, sys, zipfile
 abis = {'arm64-v8a', 'armeabi-v7a'}
@@ -49,5 +58,5 @@ try:
    if got != libs: reject(f'{abi} library set mismatch: {sorted(got)}')
 except (OSError, zipfile.BadZipFile) as e: reject(f'ZIP read error: {e}')
 PY
-pass "package, INTERNET, version, dual ABI and native library set"
+pass "package, INTERNET, version, SDK levels, debuggable/testOnly, dual ABI and native library set"
 echo "release_assert_apk: ALL PASS ($APK)"
