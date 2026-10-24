@@ -5,7 +5,16 @@
 > NetworkUtil）、README 重写、发版 ABI 纪律落地（debug=x86 / release 系=armeabi-v7a+arm64-v8a）、
 > minSdk 23→24 对齐 mitv、buildType/flavor 裁剪（alpha、r8Test、lite 移除，仅 default × debug/release）、
 > 包名与 namespace 全量迁移 `dev.aaa1115910.bv` → `cn.vectory.biliview`（9 处源码目录移动 + 1774 处
-> 词边界替换，全量编译验证；`dev.aaa1115910.biliapi` 等同根独立包与上游 URL 不在范围）。
+> 词边界替换，全量编译验证；`dev.aaa1115910.biliapi` 等同根独立包与上游 URL 不在范围）、
+> 发版脚本收尾应修项（单调门禁 fail-closed/远端 tag 比对/10# 防八进制、curl 超时、--publish-only
+> 校验、assert 补 SDK/debuggable/testOnly 断言、mapping.txt 归档、signing.properties 仅 release
+> fail-closed）。实机基线：2026-10-24 用户实测电视可安装当前 release（minSdk 24/arm 双 ABI）。
+
+## 发版纪律变更（待用户确认后执行）
+
+- [ ] release ABI 收敛为仅 armeabi-v7a（用户 2026-10-24 指示"后续只出 32 版 release"）：需同步改
+      app/build.gradle.kts 的 abiFilters、scripts/release_assert_apk.sh 硬编码 ABI 集合、
+      README「发版纪律」、AGENTS.md「发版 ABI 纪律」四处；APK 体积约减半
 
 ## 功能缺口
 
