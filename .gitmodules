@@ -1,3 +1,7 @@
 [submodule "libs"]
 	path = libs
 	url = https://github.com/aaa1115910/bv-libs.git
+	# 子模块里的 AAR 模块会被 Gradle 构建出 build/ 目录，而子模块自己的 .gitignore 只忽略了
+	# libVLC/av1Decoder 两处（漏了 ffmpegDecoder）。父仓库不把子模块的未跟踪文件算作脏工作区，
+	# 否则 scripts/release_build.sh --publish 的 clean-working-tree 前置检查会被构建残渣拦住。
+	ignore = untracked
