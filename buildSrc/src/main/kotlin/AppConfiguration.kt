@@ -12,12 +12,15 @@ object AppConfiguration {
     private const val patch = 0
     private const val hotFix = 0
 
+    // 版本号必须每次构建现算：buildSrc 的类在 Gradle daemon 里跨构建复用 classloader，
+    // 用 by lazy 缓存会把第一次算出的 versionName/versionCode 冻结在整个 daemon 生命周期里
+    // （实测：daemon 存活期间新提交后构建仍产出旧 versionName，release_assert_apk.sh fail-closed）。
     @Suppress("KotlinConstantConditions")
-    val versionName: String by lazy {
-        "$major.$minor.$patch${".$hotFix".takeIf { hotFix != 0 } ?: ""}" +
+    val versionName: String
+        get() = "$major.$minor.$patch${".$hotFix".takeIf { hotFix != 0 } ?: ""}" +
                 ".r${versionCode}.${"git rev-list HEAD --abbrev-commit --max-count=1".exec()}"
-    }
-    val versionCode: Int by lazy { "git rev-list --count HEAD".exec().toInt() }
+
+    val versionCode: Int get() = "git rev-list --count HEAD".exec().toInt()
     const val libVLCVersion = "3.0.18"
 }
 
