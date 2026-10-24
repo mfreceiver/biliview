@@ -124,7 +124,9 @@ else
  mkdir -p APK
  cp "$SRC" "APK/$ARCHIVE"
  # Archive the R8 mapping alongside the APK (path discovered, same discipline as the APK).
- mapfile -t MAPPING_FOUND < <(find app/build/outputs -type f -name mapping.txt -path '*default/release/*' -print 2>/dev/null | sort)
+ # AGP 的 mapping 目录名是 <flavor><BuildType>（本项目实测 app/build/outputs/mapping/defaultRelease/），
+ # 旧的按目录分隔布局 <flavor>/<buildType> 也一并接受；无论哪种布局都必须是唯一命中。
+ mapfile -t MAPPING_FOUND < <(find app/build/outputs -type f -name mapping.txt \( -path '*defaultRelease*' -o -path '*default/release/*' \) -print 2>/dev/null | sort)
  ((${#MAPPING_FOUND[@]} == 1)) || fail "expected exactly one defaultRelease mapping.txt, found ${#MAPPING_FOUND[@]}"
  cp "${MAPPING_FOUND[0]}" "APK/biliview-$VNAME-$SHORT-mapping.txt"
  # Keep prior version archives; regenerate checksums over strict BiliView release archive names.
