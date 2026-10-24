@@ -36,8 +36,13 @@
       androidComponents.onVariants；assembleDebug/Release + release_assert_apk.sh 全绿。偏离原计划的说明：
       Kotlin 取 2.2.10 而非 2.4.21——为对齐本机基线且绕开 R8≥9.1.29 约束，升 2.4 时重评；AGP 钉 9.3.1——
       9.3.3 未验证且无必要，取 9.3 最新 patch 时一并回归）。剩余项：
-      ① 发版前实机门禁：minified release 的 R8 反射回归冒烟（弹幕/登录/推荐流/播放/搜索/历史 Room），
-      AGP 9 默认 r8.strictFullModeForKeepRules=true，proguard-rules.pro 的 akdanmaku 反射 keep 最可能踩雷；
+      ① 发版前实机门禁：minified release 的 R8 反射回归冒烟。已按反射面排查加固（2026-10-24）：
+      akdanmaku 整库 keep、`-keep class * extends com.google.protobuf.GeneratedMessage { *; }`
+      （gRPC 错误路径经 Class.forName(服务端 typeUrl) + Any.unpack 反射取 getDefaultInstance，
+      旧规则 `-keep class bilibili.rpc.**` 只覆盖 24 个生成包里的 1 个）、
+      `-keepattributes Signature`（泛型 serializer 查找必需，库自带规则不保）、
+      SourceFile/LineNumberTable（崩溃栈可读，代价 +1.8MB APK）。待实测：弹幕/登录/推荐流/播放/搜索/
+      历史 Room，以及 gRPC 错误路径（登录失败、-352 退避、播放报错）是否返回正常文案而非 CNFE；
       ② AGP 10 逃生口债务：移除 android.builtInKotlin=false（11 个模块去 kotlin.android 改内置 Kotlin）与
       android.newDsl=false（android{} 块按新 DSL 重写）；
       ③ android.uniquePackageNames=false 债务：:app 与 :app:shared 共用 namespace cn.vectory.biliview，

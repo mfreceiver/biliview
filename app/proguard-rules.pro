@@ -14,26 +14,24 @@
 
 # Uncomment this to preserve the line number information for
 # debugging stack traces.
-#-keepattributes SourceFile,LineNumberTable
+# 崩溃栈可读性：本 App 有 LogCatcherUtil（logcat 落盘）+ LogsActivity 供导出日志，
+# 行号对定位问题价值高，代价是 dex 体积略增。已启用。
+-keepattributes SourceFile,LineNumberTable
 
 # If you keep the line number information, uncomment this to
 # hide the original source file name.
-#-renamesourcefileattribute SourceFile
+-renamesourcefileattribute SourceFile
 
 # akdanmaku
+# AGP 9 起 R8 默认 strict full mode：keep 规则不再隐式保留构造器/子包。
+# ECS 组件与 DanmakuContext 构造类均为运行时反射实例化，静态分析不可见，
+# 故整库保守 keep（库体积小，代价可接受）。旧规则仅覆盖 component.* 单层包，子包会漏。
 -dontwarn com.badlogic.gdx.backends.android.AndroidFragmentApplication
 -dontwarn com.badlogic.gdx.utils.GdxBuild
 -dontwarn com.badlogic.gdx.jnigen.BuildTarget*
 -dontwarn com.badlogic.gdx.graphics.g2d.freetype.FreetypeBuild
 -keep class com.badlogic.gdx.controllers.android.AndroidControllers
--keep class com.kuaishou.akdanmaku.ecs.DanmakuContext
--keepclasseswithmembers class * {
-    public <init>(com.kuaishou.akdanmaku.ecs.DanmakuContext);
-}
--keepclasseswithmembers class com.kuaishou.akdanmaku.ecs.component.*
--keep class com.kuaishou.akdanmaku.ecs.component.* {
-  <init>(...);
-}
+-keep class com.kuaishou.akdanmaku.** { *; }
 
 # okhttp
 -dontwarn org.bouncycastle.jsse.BCSSLParameters
@@ -74,6 +72,10 @@
 
 # @Serializable and @Polymorphic are used at runtime for polymorphic serialization.
 -keepattributes RuntimeVisibleAnnotations,AnnotationDefault
+# 泛型实参只存在于 Signature 属性里：kotlinx-serialization 库自带的规则文件不保留
+# Signature，而本项目有 body<BiliResponse<Int>>() / decodeFromJsonElement<List<X>>()
+# 这类运行时 serializer 查找，缺了它会在反序列化时报 Serializer for class not found。
+-keepattributes Signature,InnerClasses,EnclosingMethod
 
 # Serializer for classes with named companion objects are retrieved using `getDeclaredClasses`.
 # If you have any, uncomment and replace classes with those containing named companion objects.
@@ -98,13 +100,35 @@
 -keep class org.videolan.libvlc.** { *; }
 
 # gRPC
+# 生成的 proto 消息类共 24 个包：23 个在 bilibili.* 下（bilibili.app.*、bilibili.metadata.*、
+# bilibili.pgc.gateway.player.v2、bilibili.community.service.dm.v1 等），另有顶层包 common
+# （common/ErrorProto.proto 无 java_package，落在顶层 common）。只有 status.proto 生成到
+# bilibili.rpc —— 单靠下一行只保住 1 个消息类。
 -keep class bilibili.rpc.** { *; }
+# 运行时反射链（bili-api/.../grpc/utils/StatusExtends.kt）：
+#   Status.getTypeClass() -> Class.forName(服务端下发的 typeUrl)
+#   Status.getDetail()    -> Any.unpack(Class) -> protobuf Internal.getDefaultInstance(Class)
+#                                            -> clazz.getMethod("getDefaultInstance").invoke(...)
+# R8 静态分析看不到这两条字符串/反射链，而 `-keep class com.google.protobuf.**` 只覆盖
+# protobuf 运行时自身，不含 bilibili.* / common 下的生成消息类。AGP 9 起 R8 默认 strict
+# full mode，这类生成类会被改名、成员被裁 —— gRPC 错误路径（登录失败/-352/播放报错）会抛
+# ClassNotFoundException 或 "Failed to get default instance"。故按基类整库 keep。
+# 注意：protobuf 4.x 生成基类是 GeneratedMessage（GeneratedMessageV3 已退化为 deprecated stub）。
+-keep class * extends com.google.protobuf.GeneratedMessage { *; }
 -keep class com.google.protobuf.** { *; }
 -dontwarn com.google.protobuf.GeneratedMessageV3$Builder
 -dontwarn com.google.protobuf.GeneratedMessageV3$BuilderParent
 -dontwarn com.google.protobuf.GeneratedMessageV3$FieldAccessorTable
 -dontwarn com.google.protobuf.GeneratedMessageV3
 -dontwarn com.google.protobuf.RepeatedFieldBuilderV3
+
+# gRPC provider 经 java.util.ServiceLoader 按 META-INF/services 查找
+# （触发点 bili-api/.../grpc/utils/Channel.kt 的 ManagedChannelBuilder.forAddress）。
+# R8 对 ServiceLoader 有内建重写，理论上不需要显式规则；但这条链一旦断掉整个 API 层全挂，
+# 而 keep 成本几乎为零，故显式兜底（只保类名与无参构造，不阻止方法优化）。
+-keep class * implements io.grpc.ManagedChannelProvider { <init>(); }
+-keep class * implements io.grpc.NameResolverProvider { <init>(); }
+-keep class * implements io.grpc.LoadBalancerProvider { <init>(); }
 
 # kotlin-logging
 -dontwarn ch.qos.logback.classic.Level
