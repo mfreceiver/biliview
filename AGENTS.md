@@ -15,7 +15,9 @@
 
 ## 构建环境
 
-- JDK 21（gradle 工具链要求；本机 `/home/mar/jdk/jdk-21.0.12+8`，`~/.gradle/gradle.properties` 已设 `org.gradle.java.home`；系统默认 java 版本更高，仅作启动器）。
+- JDK 21（gradle 工具链要求）：真身现位于 `/usr/lib/jvm/jdk-21.0.12+8`（Temurin，2026-10-24 从 `~/jdk` 移入
+  `/usr/lib/jvm` 以便 Gradle 工具链自动探测）；`~/.gradle/gradle.properties` 设 `org.gradle.java.home` 指向它，
+  系统默认 java 25 仅作启动器；旧路径 `/home/mar/jdk/jdk-21.0.12+8` 保留为指向新位置的符号链接（兼容其它仓库脚本）。
 - `local.properties` 写 `sdk.dir=/home/mar/Android/Sdk`（不入库）；compileSdk 36 / minSdk 24 / targetSdk 36。
 - 首次克隆：`git submodule update --init --depth 1`（`libs` = aaa1115910/bv-libs，含 av1/ffmpeg 解码 AAR；
   子模块里的 `libVLC` 目录本仓库不再 include/依赖，VLC 解码链路已于 2026-10-24 整体移除）。
