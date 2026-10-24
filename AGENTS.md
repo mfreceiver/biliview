@@ -30,7 +30,8 @@
   catalog 里 `kotlin = "2.2.10"` 只用于 `org.jetbrains.kotlin.plugin.compose` / `…plugin.serialization` 子插件
   与纯 JVM 模块的 `kotlin.jvm`，**必须与内置版本一致**。抬 Kotlin 版本只能靠 buildscript classpath 覆盖 KGP。
 - KSP 需 ≥2.3.10（内置 Kotlin 下的 R 类解析修复，google/ksp#2857）；当前 2.3.12。
-- gradle.properties **不再有任何 AGP 9 逃生口**（`builtInKotlin` / `newDsl` / `uniquePackageNames` 均已移除）。
+- 禁止再引入 AGP 9 的 `builtInKotlin` / `newDsl` / `uniquePackageNames` 逃生口：它们都是「第三方插件
+  仍在读旧 DSL」的过桥配置，回退会以扩展撞名 / `BaseExtension` CCE / manifest namespace 冲突复现。
 - namespace 唯一：`:app` = `AppConfiguration.appId`（`cn.vectory.biliview`），`:app:shared` =
   `cn.vectory.biliview.shared`（2026-10-24 拆分，R/BuildConfig 引用在 shared 及其消费者里都用 `.shared.` 前缀；
   shared 的 manifest 是应用 manifest 的实际来源，其中 `.BVApp` 必须写全限定名）。

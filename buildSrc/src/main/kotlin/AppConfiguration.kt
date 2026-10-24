@@ -9,9 +9,9 @@ object AppConfiguration {
     const val jdk = 21
     private const val major = 0
     private const val minor = 2
-    private const val patch = 0
-    // 0.2.0 的首个热修复：R8 规则收尾（删除空转的 LibVLC keep、清理未接线的 consumer-rules.pro）
-    private const val hotFix = 1
+    private const val patch = 1
+    // 版本号核心只到三位（major.minor.patch）；hotFix 仅用于同 core 内的紧急重发，平时必须为 0
+    private const val hotFix = 0
 
     // 版本号必须每次构建现算：buildSrc 的类在 Gradle daemon 里跨构建复用 classloader，
     // 用 by lazy 缓存会把第一次算出的 versionName/versionCode 冻结在整个 daemon 生命周期里

@@ -33,8 +33,7 @@
       AGP 9 内置 Kotlin（删 org.jetbrains.kotlin.android；AGP 9.3.1 的 POM 依赖 kotlin-gradle-plugin:2.2.10，
       故 catalog 的 kotlin=2.2.10 只喂 compose/serialization 子插件与纯 JVM 模块，必须与内置版本一致）；
       :app:shared 独立为 cn.vectory.biliview.shared（:app 独占 cn.vectory.biliview，R/BuildConfig 引用随之
-      迁移 82 个文件，shared 的 manifest 里 .BVApp 改全限定）；gradle.properties 里三处 AGP 9 逃生口
-      （builtInKotlin / newDsl / uniquePackageNames）已全部清零。剩余项：
+      迁移 82 个文件，shared 的 manifest 里 .BVApp 改全限定）。剩余项：
       ① 发版前实机门禁：minified release 的 R8 反射回归冒烟。已按反射面排查加固（2026-10-24）：
       akdanmaku 整库 keep、`-keep class * extends com.google.protobuf.GeneratedMessage { *; }`
       （gRPC 错误路径经 Class.forName(服务端 typeUrl) + Any.unpack 反射取 getDefaultInstance，
