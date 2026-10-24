@@ -24,7 +24,7 @@
 ## 发版 ABI 纪律（强制，勿删）
 
 - `debug`：仅 `x86`（本机模拟器用）。
-- `release`：`armeabi-v7a` + `arm64-v8a` 合并单包，**禁止 x86/x86_64**。
+- `release`：仅 `armeabi-v7a`（2026-10-24 收敛，电视实机验证通过），**禁止 arm64-v8a / x86/x86_64**。
 - 由 `app/build.gradle.kts` 的 `buildTypes.configureEach { ndk { abiFilters … } }` 强制；改动 ABI 集合须先更新 README「发版纪律」与本条。
 - 版本：`buildSrc` `AppConfiguration` 的 major/minor/patch/hotFix；`versionCode = git rev-list --count HEAD`（依赖提交计数，勿手工指定版本号）；产物命名 `BiliView_<versionCode>_<versionName>.<buildType>_<flavor>_<abi>.apk`。
 - release 签名：根目录 `signing.properties`（不入库，三键 storeFile/storePassword/keyAlias，keyAlias=release，keystore 与 mitv 同款）；缺该文件时产物 unsigned。发版只经 `scripts/release_build.sh`（版本唯一/单调、证书指纹钉定 fail-closed、APK/ 归档 + SHA256SUMS、Gitea 发布），**禁止手打 tag 发版**；ABI 集合同时硬编码于 `release_assert_apk.sh`，改动 ABI 须同步该脚本。

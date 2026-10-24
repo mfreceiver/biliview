@@ -108,13 +108,13 @@ android {
     }
 
     // 发版 ABI 纪律（见 docs/TODO.md 与 README）：
-    // debug 仅含 x86（本机模拟器）；release 为 armeabi-v7a + arm64-v8a 合并单包
+    // debug 仅含 x86（本机模拟器）；release 仅 armeabi-v7a（2026-10-24 用户裁定：电视实机验证通过，收敛 32 位）
     buildTypes.configureEach {
         ndk {
             if (name == "debug") {
                 abiFilters.add("x86")
             } else {
-                abiFilters.addAll(listOf("armeabi-v7a", "arm64-v8a"))
+                abiFilters.add("armeabi-v7a")
             }
         }
     }

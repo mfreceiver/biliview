@@ -20,13 +20,13 @@
 
 ```shell
 ./gradlew :app:assembleDefaultDebug     # 调试包（仅 x86，供本机模拟器）
-./gradlew :app:assembleDefaultRelease   # 发版包（armeabi-v7a + arm64-v8a 二合一）
+./gradlew :app:assembleDefaultRelease   # 发版包（仅 armeabi-v7a）
 ```
 
 ## 发版纪律
 
-- **release**：单一 universal APK，armeabi-v7a（arm32）+
-  arm64-v8a（arm64）合并打包，**不含 x86 / x86_64**；
+- **release**：单一 universal APK，仅 armeabi-v7a（arm32），
+  **不含 arm64-v8a / x86 / x86_64**（2026-10-24 收敛：目标电视实机验证通过）；
 - **debug**：仅含 x86，供本机 Android 模拟器安装调试；
 - ABI 约束由 `app/build.gradle.kts` 中 `buildTypes.configureEach` 的 `ndk.abiFilters` 强制；
 - 产物命名：`BiliView_<versionCode>_<versionName>.<buildType>_<flavor>_<abi>.apk`；

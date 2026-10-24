@@ -10,12 +10,6 @@
 > 校验、assert 补 SDK/debuggable/testOnly 断言、mapping.txt 归档、signing.properties 仅 release
 > fail-closed）。实机基线：2026-10-24 用户实测电视可安装当前 release（minSdk 24/arm 双 ABI）。
 
-## 发版纪律变更（待用户确认后执行）
-
-- [ ] release ABI 收敛为仅 armeabi-v7a（用户 2026-10-24 指示"后续只出 32 版 release"）：需同步改
-      app/build.gradle.kts 的 abiFilters、scripts/release_assert_apk.sh 硬编码 ABI 集合、
-      README「发版纪律」、AGENTS.md「发版 ABI 纪律」四处；APK 体积约减半
-
 ## 功能缺口
 
 - [ ] 直播 UI：API 层已齐（`BiliLiveHttpApi`：getRoomPlayInfo / getDanmuInfo / playUrl 等），

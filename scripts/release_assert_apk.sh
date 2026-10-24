@@ -41,7 +41,7 @@ MANIFEST_TREE="$("$BT/aapt" dump xmltree "$APK" AndroidManifest.xml 2>/dev/null)
 if grep -qi 'testOnly' <<<"$MANIFEST_TREE"; then fail 'testOnly must not be set'; fi
 python3 - "$APK" "$BADGING" <<'PY' || fail "ABI/native library assertion failed"
 import re, sys, zipfile
-abis = {'arm64-v8a', 'armeabi-v7a'}
+abis = {'armeabi-v7a'}
 libs = {'libandroidx.graphics.path.so', 'libdatastore_shared_counter.so', 'libffmpegJNI.so', 'libgdx.so'}
 def reject(s): sys.exit('ASSERT-FAIL: ' + s)
 lines = [x for x in sys.argv[2].splitlines() if x.startswith('native-code:')]
