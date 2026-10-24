@@ -97,7 +97,10 @@
 -dontwarn java.lang.management.RuntimeMXBean
 
 # LibVLC
--keep class org.videolan.libvlc.** { *; }
+# 原来这里是 `-keep class org.videolan.libvlc.** { *; }`，但当前没有任何模块依赖
+# :libs:libVLC（settings 里有 include，全仓无 project(":libs:libVLC") 也无可执行引用），
+# 发货 APK 的 mapping 里 videolan 命中 0、APK 里也没有 vlc 的 so —— 规则是空转的，故删除。
+# 将来真正接上 VLC 解码时，需要把这条 keep 与 libVLCVersion 下载链路一起恢复。
 
 # gRPC
 # 生成的 proto 消息类共 24 个包：23 个在 bilibili.* 下（bilibili.app.*、bilibili.metadata.*、
