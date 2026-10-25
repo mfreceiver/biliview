@@ -18,14 +18,21 @@ import com.kuaishou.akdanmaku.ui.DanmakuView
 @Composable
 fun AkDanmakuPlayer(
     modifier: Modifier = Modifier,
-    danmakuPlayer: DanmakuPlayer?
+    danmakuPlayer: DanmakuPlayer?,
+    releaseOnDispose: Boolean = true
 ) {
     val context = LocalContext.current
     var danmakuView: DanmakuView? by remember { mutableStateOf(null) }
 
     DisposableEffect(Unit) {
         onDispose {
-            danmakuPlayer?.release()
+            if (releaseOnDispose) {
+                danmakuPlayer?.release()
+            } else {
+                // 引擎生命周期由外部（如 retained ViewModel 的 onCleared）管理：
+                // dispose 只解绑并暂停，避免 Activity 配置重建后引擎被永久释放
+                danmakuPlayer?.stop()
+            }
         }
     }
 

@@ -66,8 +66,9 @@ private const val CONTROLS_HIDE_DELAY_MS = 5_000L
  * - 底部：弹幕开关、清晰度菜单、退出
  * - 遥控：控制器隐藏时任意方向键 / OK / MENU 唤出，BACK 退出（清晰度菜单打开时 BACK 只关菜单）
  *
- * 弹幕层始终留在组合里，开关只切 alpha：`AkDanmakuPlayer` 在 onDispose 时会 release 弹幕引擎，
- * 条件移出组合会导致再次打开时用的是已释放的实例。
+ * 弹幕层始终留在组合里，开关只切 alpha：弹幕引擎的释放由 [LivePlayerViewModel] 的 onCleared 负责
+ * （`AkDanmakuPlayer` 传 `releaseOnDispose = false`，dispose 只解绑/暂停），
+ * 条件移出组合或 Activity 配置重建都不会释放引擎。
  */
 @Composable
 fun LivePlayerScreen(
@@ -163,7 +164,8 @@ fun LivePlayerScreen(
                 modifier = Modifier
                     .fillMaxSize()
                     .alpha(if (viewModel.danmakuEnabled) 1f else 0f),
-                danmakuPlayer = player
+                danmakuPlayer = player,
+                releaseOnDispose = false
             )
         }
 
