@@ -22,11 +22,12 @@ import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.unit.dp
 import androidx.tv.material3.MaterialTheme
 import androidx.tv.material3.Text
+import cn.vectory.biliview.entity.carddata.LiveCardData
+import cn.vectory.biliview.tv.activities.live.LivePlayerActivity
 import cn.vectory.biliview.tv.component.LoadingTip
 import cn.vectory.biliview.tv.component.videocard.LiveCard
 import cn.vectory.biliview.tv.screens.main.ugc.gridItems
 import cn.vectory.biliview.util.fInfo
-import cn.vectory.biliview.util.toast
 import cn.vectory.biliview.viewmodel.live.LiveViewModel
 import io.github.oshai.kotlinlogging.KotlinLogging
 import kotlinx.coroutines.Dispatchers
@@ -78,7 +79,7 @@ fun LiveScreen(
             itemContent = { index, item ->
                 LiveCard(
                     data = item,
-                    onClick = { actionStartLive(context, item.roomId) },
+                    onClick = { actionStartLive(context, item) },
                     onFocus = { currentFocusedIndex = index }
                 )
             }
@@ -115,12 +116,17 @@ fun LiveScreen(
 /**
  * 跳转直播间
  *
- * TODO(Lane D): 直播播放页落地后替换为
- * `context.startActivity(Intent(context, LivePlayerActivity::class.java).putExtra("roomId", roomId))`，
- * 与 [cn.vectory.biliview.tv.activities.video.VideoInfoActivity.actionStart] 保持同样的 actionStart 惯例。
- * 在此之前只做日志 + 轻提示，保证遥控点击不会崩。
+ * 房间标题 / 主播 / 分区直接由列表卡片带过去（`getRoomPlayInfo` 不返回这些字段），
+ * 在线人气以弹幕心跳回包为准，卡片上的值只用于进房瞬间展示。
  */
-fun actionStartLive(context: Context, roomId: Long) {
-    logger.fInfo { "actionStartLive: roomId = $roomId, live player page is not implemented yet" }
-    "直播间 $roomId 播放页开发中".toast(context)
+fun actionStartLive(context: Context, data: LiveCardData) {
+    logger.fInfo { "actionStartLive: roomId = ${data.roomId}, title = ${data.title}" }
+    LivePlayerActivity.actionStart(
+        context = context,
+        roomId = data.roomId,
+        title = data.title,
+        uname = data.uname,
+        areaName = data.areaName,
+        online = data.online ?: 0
+    )
 }
