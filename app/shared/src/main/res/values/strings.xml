@@ -31,8 +31,6 @@
     <string name="common_cancel">取消</string>
     <string name="common_confirm">确定</string>
 
-    <string name="confirm">确认</string>
-
     <string name="date_format_hours_age">%1$d 小时前</string>
     <string name="date_format_just_now">刚刚</string>
     <string name="date_format_minutes_age">%1$d 分钟前</string>
