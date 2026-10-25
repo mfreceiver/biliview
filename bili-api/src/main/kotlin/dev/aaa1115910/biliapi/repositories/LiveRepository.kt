@@ -57,6 +57,10 @@ class LiveRepository(
      * 封装了 `url_info.host + base_url + url_info.extra` 的拼接与编码/画质选择策略，
      * 详见 [LiveStreamSelector]。当前播放器只有 ProgressiveMediaSource，故只取 FLV。
      *
+     * 注意：本方法内部会请求一次 `getRoomPlayInfo`；调用方若已经拿到 [RoomPlayInfoData]
+     * （例如播放页要先读 `live_status` / `g_qn_desc`），应改用 [getLiveStreamUrl] 的
+     * `RoomPlayInfoData` 重载复用同一份数据，避免同参数接口打两次。
+     *
      * @param codecPriority 编码优先级，默认 AVC > HEVC
      * @param urlIndex 选第几个 CDN，越界回退第一个
      * @throws dev.aaa1115910.biliapi.http.entity.RiskControlException 命中 -352 风控
@@ -67,16 +71,34 @@ class LiveRepository(
         qn: Int = LIVE_DEFAULT_QN,
         codecPriority: List<String> = LiveStreamSelector.DEFAULT_CODEC_PRIORITY,
         urlIndex: Int = 0
-    ): LiveStreamUrl {
-        val roomInfo = getRoomInfo(roomId = roomId, qn = qn)
-        return LiveStreamSelector.selectFlvStream(
+    ): LiveStreamUrl = getLiveStreamUrl(
+        roomInfo = getRoomInfo(roomId = roomId, qn = qn),
+        codecPriority = codecPriority,
+        urlIndex = urlIndex
+    )
+
+    /**
+     * 基于已取到的房间详情选一条可播放的 HTTP-FLV 地址（纯函数，不发请求）
+     *
+     * 供「先读房间详情、再选流」的调用方复用同一份 `playurl_info`：
+     * `getRoomPlayInfo` 同参数连打两次既浪费又更容易触发风控。
+     *
+     * @param codecPriority 编码优先级，默认 AVC > HEVC
+     * @param urlIndex 选第几个 CDN，越界回退第一个
+     * @throws IllegalStateException 未开播或没有可用的 FLV 流
+     */
+    fun getLiveStreamUrl(
+        roomInfo: RoomPlayInfoData,
+        codecPriority: List<String> = LiveStreamSelector.DEFAULT_CODEC_PRIORITY,
+        urlIndex: Int = 0
+    ): LiveStreamUrl =
+        LiveStreamSelector.selectFlvStream(
             data = roomInfo,
             codecPriority = codecPriority,
             urlIndex = urlIndex
         ) ?: throw IllegalStateException(
-            "直播间 $roomId 没有可用的 FLV 流，liveStatus=${roomInfo.liveStatus}"
+            "直播间 ${roomInfo.roomId} 没有可用的 FLV 流，liveStatus=${roomInfo.liveStatus}"
         )
-    }
 
     /**
      * 推荐/热门直播列表（`webMain/getMoreRecList`）
