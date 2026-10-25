@@ -12,3 +12,6 @@ APK/
 /.idea/jarRepositories.xml
 /.idea/migrations.xml
 /.idea/codeStyles/
+
+# Kotlin/Gradle 2.x session artifacts
+.kotlin/
