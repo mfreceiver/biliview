@@ -31,9 +31,13 @@
       AGP 9 内置 Kotlin（删 org.jetbrains.kotlin.android；AGP 9.3.1 的 POM 依赖 kotlin-gradle-plugin:2.2.10，
       故 catalog 的 kotlin=2.2.10 只喂 compose/serialization 子插件与纯 JVM 模块，必须与内置版本一致）；
       :app:shared 独立为 cn.vectory.biliview.shared（:app 独占 cn.vectory.biliview，R/BuildConfig 引用随之
-      迁移 82 个文件，shared 的 manifest 里 .BVApp 改全限定）。剩余项：
-      ① versions 插件 0.52.0 在 Gradle 9 下未跑过 dependencyUpdates，待确认；
-      ② 后续升级项：Kotlin 2.4（需 classpath 覆盖 KGP 才能抬内置 Kotlin 版本）、AGP 9.3 最新 patch；
+      迁移 82 个文件，shared 的 manifest 里 .BVApp 改全限定）。2026-10-25 验证：versions 插件 0.52.0
+      在 Gradle 9.7.1 下 dependencyUpdates 可跑通（BUILD SUCCESSFUL，报告 build/dependencyUpdates/report.txt）。
+      接线：仅根 build.gradle.kts `alias(gradleLibs.plugins.versions)` 应用，故报告只覆盖根插件 classpath
+      （AGP 9.3.1→9.6.0-alpha01、Kotlin 2.2.10→2.5.0-Beta2、versions 0.52.0→0.66.0、Gradle 9.7.1→9.8.2 RC），
+      Android 模块的库依赖不在报告中。已知限制：0.52.0 在任务执行期调用 Task.project，Gradle 10 将报错、
+      且与 configuration cache 不兼容；升 Gradle 10 或启用配置缓存前需升 versions 插件（候选 0.66.0，本次未升）。
+      后续升级项：Kotlin 2.4（需 classpath 覆盖 KGP 才能抬内置 Kotlin 版本）、AGP 9.3 最新 patch；
       暂不启用 configuration cache
 - [ ] 上游同步策略：与 aaa1115910/bv@develop 的更新如何跟进（本仓库历史已重新初始化，
       无法直接 merge，需 vendor 重导入或 patch 流程）
