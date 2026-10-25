@@ -1,310 +1,305 @@
 package dev.aaa1115910.biliapi.websocket
 
-import dev.aaa1115910.biliapi.http.BiliLiveHttpApi
-import dev.aaa1115910.biliapi.http.entity.live.DanmakuEvent
-import dev.aaa1115910.biliapi.http.entity.live.FrameHeader
-import dev.aaa1115910.biliapi.http.entity.live.LiveEvent
-import dev.aaa1115910.biliapi.http.entity.live.readFrameHeader
-import dev.aaa1115910.biliapi.http.plugins.BiliUserAgent
-import dev.aaa1115910.biliapi.http.util.zlibDecompress
+import dev.aaa1115910.biliapi.repositories.AuthRepository
 import io.github.oshai.kotlinlogging.KotlinLogging
-import io.ktor.client.HttpClient
-import io.ktor.client.engine.okhttp.OkHttp
-import io.ktor.client.plugins.websocket.WebSockets
-import io.ktor.client.plugins.websocket.wss
-import io.ktor.utils.io.core.ByteReadPacket
-import io.ktor.utils.io.core.buildPacket
-import io.ktor.utils.io.core.remaining
-import io.ktor.utils.io.core.toByteArray
-import io.ktor.utils.io.core.writePacket
-import io.ktor.websocket.Frame
 import kotlinx.coroutines.CancellationException
-import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.CoroutineStart
+import kotlinx.coroutines.Job
+import kotlinx.coroutines.cancelAndJoin
+import kotlinx.coroutines.channels.BufferOverflow
+import kotlinx.coroutines.coroutineScope
+import kotlinx.coroutines.currentCoroutineContext
 import kotlinx.coroutines.delay
+import kotlinx.coroutines.flow.MutableSharedFlow
+import kotlinx.coroutines.flow.SharedFlow
+import kotlinx.coroutines.flow.asSharedFlow
 import kotlinx.coroutines.isActive
 import kotlinx.coroutines.launch
-import kotlinx.coroutines.withContext
-import kotlinx.io.readByteArray
-import kotlinx.serialization.json.Json
-import kotlinx.serialization.json.buildJsonObject
-import kotlinx.serialization.json.int
-import kotlinx.serialization.json.jsonArray
-import kotlinx.serialization.json.jsonObject
-import kotlinx.serialization.json.jsonPrimitive
-import kotlinx.serialization.json.long
-import kotlinx.serialization.json.put
+import java.util.concurrent.atomic.AtomicReference
 
-object LiveDataWebSocket {
-    private lateinit var client: HttpClient
-    private val logger = KotlinLogging.logger { }
+/** 协商的压缩协议版本，数值即弹幕认证包里的 `protover` */
+enum class LiveCompression(val protoVer: Int) {
+    /** zlib（protover=2），兼容性最好 */
+    ZLIB(2),
 
-    private val heartbeat = byteArrayOf(
-        0, 0, 0, 0x1f,
-        0, 0x10, 0, 0x1,
-        0, 0, 0, 0x2,
-        0, 0, 0, 0x1,
-        0x5b, 0x6f, 0x62, 0x6a,
-        0x65, 0x63, 0x74, 0x20,
-        0x4f, 0x62, 0x6a, 0x65,
-        0x63, 0x74, 0x5d
+    /** brotli（protover=3），官方 web 端默认 */
+    BROTLI(3),
+}
+
+/**
+ * B 站直播弹幕 WebSocket。
+ *
+ * 用法：
+ * ```
+ * val ws = LiveDataWebSocket(midProvider = { authRepository.mid })
+ * val job = ws.connect(roomId, lifecycleScope)
+ * ws.events.collect { ... }
+ * // 退出
+ * ws.close()
+ * ```
+ *
+ * 语义：
+ * - [connect] 返回 [Job]，调用方可直接 `cancel()`；[close] 会取消内部 Job 并彻底关闭 socket。
+ * - 连接断开（服务端关闭、网络错误、认证失败）后按 [ReconnectPolicy] 指数退避重连，
+ *   每次重连都会重新拉取 token 与主机列表并重新认证。
+ * - 事件经 [events] 单向下发；未识别的 cmd 只记 debug 日志，不会中断连接。
+ */
+class LiveDataWebSocket(
+    private val roomInfoProvider: LiveRoomInfoProvider,
+    private val socketFactory: LiveSocketFactory = KtorLiveSocketFactory,
+    private val midProvider: () -> Long? = { null },
+    private val compression: LiveCompression = LiveCompression.BROTLI,
+    private val reconnectPolicy: ReconnectPolicy = ReconnectPolicy(),
+    private val heartbeatIntervalMs: Long = DEFAULT_HEARTBEAT_INTERVAL_MS,
+    private val stableConnectionMs: Long = DEFAULT_STABLE_CONNECTION_MS,
+) {
+    /** 便捷入口：uid 从 [AuthRepository] 取，未登录时为 0 */
+    constructor(
+        roomInfoProvider: LiveRoomInfoProvider,
+        authRepository: AuthRepository,
+        socketFactory: LiveSocketFactory = KtorLiveSocketFactory,
+        compression: LiveCompression = LiveCompression.BROTLI,
+        reconnectPolicy: ReconnectPolicy = ReconnectPolicy(),
+    ) : this(
+        roomInfoProvider = roomInfoProvider,
+        socketFactory = socketFactory,
+        midProvider = { authRepository.mid },
+        compression = compression,
+        reconnectPolicy = reconnectPolicy,
     )
 
-    init {
-        createClient()
-    }
+    private val logger = KotlinLogging.logger { }
 
-    private fun createClient() {
-        client = HttpClient(OkHttp) {
-            BiliUserAgent()
-            install(WebSockets)
-        }
-    }
+    private val _events = MutableSharedFlow<LiveEvent>(
+        replay = 0,
+        extraBufferCapacity = EVENT_BUFFER_CAPACITY,
+        onBufferOverflow = BufferOverflow.DROP_OLDEST,
+    )
 
-    suspend fun connectLiveEvent(
+    /** 直播间事件流（弹幕、连接状态等） */
+    val events: SharedFlow<LiveEvent> = _events.asSharedFlow()
+
+    private val jobRef = AtomicReference<Job?>(null)
+    private val socketRef = AtomicReference<LiveSocket?>(null)
+
+    /** 上一次成功连上的主机，重连时优先复用 */
+    @Volatile
+    private var lastConnectedHost: LiveHost? = null
+
+    /** 当前连接已建立多久（毫秒），0 表示当前未连上 */
+    @Volatile
+    private var connectedSinceMillis: Long = 0L
+
+    /** 上一次连接是否稳定存活过 [stableConnectionMs]（决定重连后是否清零退避） */
+    @Volatile
+    private var lastConnectionWasStable = false
+
+    val isConnected: Boolean
+        get() = connectedSinceMillis > 0L
+
+    /**
+     * 连接直播间并持续接收事件，返回的 [Job] 取消即断开。
+     *
+     * 重复调用会先取消上一次连接。内部已在重连循环里兜住所有异常，
+     * 需要感知「彻底放弃重连」时使用 [onDisconnect]（`willReconnect == false`）。
+     */
+    fun connect(
         roomId: Int,
-        onEvent: (event: LiveEvent) -> Unit
-    ) {
-        val danmuInfo =
-            BiliLiveHttpApi.getLiveDanmuInfo(roomId).data ?: throw CancellationException()
-        val realRoomId =
-            BiliLiveHttpApi.getLiveRoomPlayInfo(roomId).data?.roomId
-                ?: throw CancellationException()
-        val hosts = danmuInfo.hostList.last()
-
-        val data = buildJsonObject {
-            put("uid", 0)
-            put("roomid", realRoomId)
-            put("protover", 2)
-            put("platform", "web")
-            put("type", 2)
-            put("key", danmuInfo.token)
-        }.toString().toByteArray()
-        val b = buildPacket {
-            val size = 16 + data.size
-            writeInt(size) // 封包总大小
-            writeShort(0x10) // 头部大小
-            writeShort(1) // 协议版本
-            writeInt(7) // 类型
-            writeInt(1)
-            writePacket(ByteReadPacket(data))
+        scope: CoroutineScope,
+        onDisconnect: ((LiveDisconnectInfo) -> Unit)? = null,
+    ): Job {
+        val job = scope.launch(start = CoroutineStart.LAZY) {
+            runCatching { runConnection(roomId, onDisconnect) }
+                .onFailure { if (it is CancellationException) throw it else logger.error(it) { "弹幕连接异常退出" } }
         }
+        job.invokeOnCompletion { cause ->
+            if (jobRef.compareAndSet(job, null)) {
+                connectedSinceMillis = 0L
+                _events.tryEmit(LiveEvent.Connection.Closed)
+            }
+            if (cause != null && cause !is CancellationException) {
+                logger.debug(cause) { "弹幕连接结束" }
+            }
+        }
+        jobRef.getAndSet(job)?.cancel()
+        job.start()
+        return job
+    }
 
-        val job = client.launch {
-            client.wss(
-                host = hosts.host,
-                port = hosts.wssPort,
-                path = "/sub"
-            ) {
-                val byte = b.readByteArray()
-                outgoing.send(Frame.Binary(true, byte))
-                launch {
-                    delay(5000)
-                    while (isActive) {
-                        outgoing.send(Frame.Binary(true, heartbeat))
-                        delay(30_000)
-                    }
-                }
-                while (isActive) {
-                    val frame = incoming.receive()
-                    val eventData = frame.data
-                    launch {
+    /**
+     * 取消重连并彻底断开，返回前 socket 已关闭
+     */
+    suspend fun close() {
+        val job = jobRef.getAndSet(null)
+        if (job != null) {
+            job.cancelAndJoin()
+            _events.tryEmit(LiveEvent.Connection.Closed)
+        }
+        socketRef.getAndSet(null)?.let { socket ->
+            runCatching { socket.close() }
+                .onFailure { logger.debug(it) { "关闭弹幕 socket 失败" } }
+        }
+        connectedSinceMillis = 0L
+    }
 
-                        handleLiveEventData(eventData).forEach { event ->
-                            onEvent(event)
+    private suspend fun runConnection(
+        roomId: Int,
+        onDisconnect: ((LiveDisconnectInfo) -> Unit)?,
+    ) {
+        reconnectPolicy.reset()
+        while (currentCoroutineContext().isActive) {
+            val cause: Throwable? = try {
+                pump(roomId)
+                logger.debug { "弹幕服务器关闭了连接" }
+                null
+            } catch (e: CancellationException) {
+                throw e
+            } catch (e: Throwable) {
+                e
+            }
+            connectedSinceMillis = 0L
+
+            // 稳定连接过一段时间才认为恢复，避免抖动时退避归零
+            if (lastConnectionWasStable) {
+                reconnectPolicy.reset()
+            }
+            lastConnectionWasStable = false
+
+            val delayMs = reconnectPolicy.nextDelayMs()
+            if (delayMs == null) {
+                _events.tryEmit(LiveEvent.Connection.Failed(cause.describe()))
+                onDisconnect?.invoke(
+                    LiveDisconnectInfo(
+                        reason = cause?.describe(),
+                        willReconnect = false,
+                        attempt = reconnectPolicy.attempt,
+                        retryDelayMs = 0L,
+                    )
+                )
+                return
+            }
+
+            val attempt = reconnectPolicy.attempt
+            logger.debug(cause) { "弹幕连接断开，第 $attempt 次重连将在 ${delayMs}ms 后开始" }
+            _events.tryEmit(LiveEvent.Connection.Reconnecting(attempt, delayMs, cause.describe()))
+            onDisconnect?.invoke(
+                LiveDisconnectInfo(
+                    reason = cause?.describe(),
+                    willReconnect = true,
+                    attempt = attempt,
+                    retryDelayMs = delayMs,
+                )
+            )
+            delay(delayMs)
+        }
+    }
+
+    /**
+     * 拉取 token 与主机列表，按「非 last 优先 + 失败轮换」依次尝试，直到某台主机连上；
+     * 连接建立后的异常不再换主机，直接抛给上层走退避重连
+     */
+    private suspend fun pump(roomId: Int) {
+        val roomInfo = roomInfoProvider.getLiveRoomInfo(roomId)
+        val hosts = roomInfo.hosts.orderedHosts(preferred = lastConnectedHost)
+        if (hosts.isEmpty()) throw LiveConnectionException("房间 ${roomInfo.roomId} 没有可用的弹幕服务器")
+
+        var lastError: Throwable? = null
+        for (host in hosts) {
+            if (!currentCoroutineContext().isActive) return
+            val socket = try {
+                openHost(roomInfo, host)
+            } catch (e: CancellationException) {
+                throw e
+            } catch (e: Throwable) {
+                logger.debug(e) { "连接弹幕服务器 ${host.host}:${host.wssPort} 失败" }
+                lastError = e
+                continue
+            }
+            readEvents(socket)
+            return
+        }
+        throw LiveConnectionException("房间 ${roomInfo.roomId} 的弹幕服务器均连接失败", lastError)
+    }
+
+    /** 连接单台主机并发送认证包，成功后返回 socket；失败时自行收尾并抛出 */
+    private suspend fun openHost(roomInfo: LiveRoomInfo, host: LiveHost): LiveSocket {
+        _events.tryEmit(LiveEvent.Connection.Connecting(host.host, host.wssPort, reconnectPolicy.attempt + 1))
+        val socket = socketFactory.connect(host.host, host.wssPort, SUB_PATH)
+        socketRef.set(socket)
+        try {
+            socket.send(
+                LivePacketCodec.authPacket(
+                    uid = midProvider() ?: 0L,
+                    roomId = roomInfo.roomId,
+                    token = roomInfo.token,
+                    protoVer = compression.protoVer,
+                )
+            )
+        } catch (e: Throwable) {
+            socketRef.compareAndSet(socket, null)
+            runCatching { socket.close() }
+            throw e
+        }
+        lastConnectedHost = host
+        connectedSinceMillis = System.currentTimeMillis()
+        _events.tryEmit(LiveEvent.Connection.Connected(host.host, host.wssPort))
+        return socket
+    }
+
+    /** 持续收取事件直到连接结束；退出时关闭 socket 并记录连接是否稳定 */
+    private suspend fun readEvents(socket: LiveSocket) {
+        try {
+            coroutineScope {
+                val heartbeat = launch { heartbeatLoop(socket) }
+                try {
+                    while (true) {
+                        val frame = socket.receive() ?: break
+                        for (event in LivePacketCodec.decodeFrame(frame)) {
+                            _events.tryEmit(event)
                         }
                     }
+                } finally {
+                    heartbeat.cancel()
                 }
             }
-        }
-        job.invokeOnCompletion {
-            it?.printStackTrace()
+        } finally {
+            socketRef.compareAndSet(socket, null)
+            val connectedFor = if (connectedSinceMillis > 0L) {
+                System.currentTimeMillis() - connectedSinceMillis
+            } else {
+                0L
+            }
+            lastConnectionWasStable = connectedFor >= stableConnectionMs
+            connectedSinceMillis = 0L
+            runCatching { socket.close() }
+                .onFailure { logger.debug(it) { "关闭弹幕 socket 失败" } }
         }
     }
 
-    private suspend fun handleLiveEventData(data: ByteArray): List<LiveEvent> {
-        val result = mutableListOf<LiveEvent>()
-        withContext(Dispatchers.IO) {
-            if (data.size <= 16) return@withContext
-            val bytePack = ByteReadPacket(data)
-            val head = bytePack.readFrameHeader()
-            val body = bytePack.readByteArray((head.totalLength - head.headerLength))
-            result.addAll(handleLiveEventBody(head, body))
-        }
-        return result
-    }
-
-    private fun handleLiveEventBody(head: FrameHeader, data: ByteArray): List<LiveEvent> {
-        val result = mutableListOf<LiveEvent>()
-        val bytePack = ByteReadPacket(data)
-        when (head.type) {
-            //心跳包回复（人气值）
-            3 -> {
-            }
-
-            //普通包（命令）
-            5 -> {
-                when (head.version.toInt()) {
-                    //0 普通包正文不使用压缩
-                    //1 心跳及认证包正文不使用压缩
-                    0, 1 -> {
-                        val strData = bytePack.readByteArray().decodeToString()
-                        handleLiveCMDEventString(strData)?.let { result += it }
-                    }
-
-                    //普通包正文使用zlib压缩
-                    2 -> {
-                        val decompress = bytePack.readByteArray().zlibDecompress()
-                        result += handleLiveEventBodyDecompress(decompress)
-                    }
-
-                    //普通包正文使用brotli压缩,解压为一个带头部的协议0普通包
-                    3 -> {
-                        logger.warn { "todo package version: ${head.version}" }
-                        bytePack.readByteArray()
-                    }
-
-                    else -> {
-                        logger.warn { "Unknown package version: ${head.version}" }
-                        bytePack.readByteArray()
-                    }
-                }
-            }
-
-            //认证包回复
-            8 -> {
-                bytePack.readByteArray(10)
-            }
-
-            else -> {
-                logger.warn { "Unknown package type: ${head.type}" }
-                bytePack.readByteArray()
+    private suspend fun heartbeatLoop(socket: LiveSocket) {
+        while (currentCoroutineContext().isActive) {
+            delay(heartbeatIntervalMs)
+            if (!currentCoroutineContext().isActive) break
+            try {
+                socket.send(LivePacketCodec.HEARTBEAT_PACKET)
+            } catch (e: CancellationException) {
+                throw e
+            } catch (e: Throwable) {
+                logger.debug(e) { "心跳发送失败，等待读取循环发现断线" }
+                return
             }
         }
-        return if (bytePack.remaining > 16) result + handleLiveEventBody(
-            bytePack.readFrameHeader(),
-            bytePack.readByteArray()
-        )
-        else result
     }
 
-    private fun handleLiveEventBodyDecompress(data: ByteArray): List<LiveEvent> {
-        val result = mutableListOf<LiveEvent>()
-        val bytePack = ByteReadPacket(data)
-        val header = bytePack.readFrameHeader()
-        val body = bytePack.readByteArray(header.dataLength)
-        result += handleLiveCMDEvent(header, body)
-        return if (bytePack.remaining > 0) result + handleLiveEventBodyDecompress(bytePack.readByteArray()) else result
-    }
-
-    private fun handleLiveCMDEvent(head: FrameHeader, data: ByteArray): List<LiveEvent> {
-        val result = mutableListOf<LiveEvent>()
-        val strData: String
-        when (head.version.toInt()) {
-            0 -> {
-                strData = data.decodeToString()
-            }
-
-            2 -> {
-                val decompress = data.zlibDecompress()
-                val bytePack = ByteReadPacket(decompress)
-                val packageHeader = bytePack.readFrameHeader()
-                val body =
-                    bytePack.readByteArray((packageHeader.totalLength - packageHeader.headerLength))
-                if (bytePack.remaining > 16) {
-                    result += handleLiveEventBody(
-                        bytePack.readFrameHeader(),
-                        bytePack.readByteArray()
-                    )
-                }
-                strData = body.decodeToString()
-            }
-
-            else -> return result
-        }
-        handleLiveCMDEventString(strData)?.let { result += it }
-        return result
-    }
-
-    private fun handleLiveCMDEventString(strData: String): LiveEvent? {
-        val dataJson = Json.parseToJsonElement(strData).jsonObject
-        val cmd = dataJson["cmd"]!!.jsonPrimitive.content
-
-        when (cmd) {
-            "COMBO_SEND" -> {}
-            "DANMU_MSG" -> {
-                runCatching {
-                    val danmakuContent = dataJson["info"]!!.jsonArray[1].jsonPrimitive.content
-                    val senderMid = dataJson["info"]!!.jsonArray[2].jsonArray[0].jsonPrimitive.long
-                    val senderUsername =
-                        dataJson["info"]!!.jsonArray[2].jsonArray[1].jsonPrimitive.content
-                    var medalLevel: Int? = null
-                    var medalName: String? = null
-                    runCatching {
-                        medalLevel =
-                            dataJson["info"]?.jsonArray?.get(3)?.jsonArray?.get(0)?.jsonPrimitive?.int
-                        medalName =
-                            dataJson["info"]?.jsonArray?.get(3)?.jsonArray?.get(1)?.jsonPrimitive?.content
-                    }
-
-                    return DanmakuEvent(
-                        content = danmakuContent,
-                        mid = senderMid,
-                        username = senderUsername,
-                        medalName = medalName,
-                        medalLevel = medalLevel
-                    )
-                }.onFailure {
-                    logger.warn { "Parse danmaku content failed: ${it.message}" }
-                }
-            }
-
-            "ENTRY_EFFECT" -> {}
-            //有人上舰
-            "GUARD_BUY" -> {}
-            //千舰通知
-            "GUARD_HONOR_THOUSAND" -> {
-                println(dataJson)
-            }
-
-            "HOT_RANK_CHANGED" -> {}
-            "HOT_RANK_CHANGED_V2" -> {}
-            "HOT_RANK_SETTLEMENT" -> {}
-            "HOT_RANK_SETTLEMENT_V2" -> {}
-            "HOT_ROOM_NOTIFY" -> {}
-            "INTERACT_WORD" -> {}
-            "LIVE" -> {
-                println(dataJson)
-            }
-
-            "LIVE_INTERACTIVE_GAME" -> {}
-            "LIKE_INFO_V3_CLICK" -> {}
-            "LIKE_INFO_V3_UPDATE" -> {}
-            "NOTICE_MSG" -> {}
-            "ONLINE_RANK_COUNT" -> {}
-            "ONLINE_RANK_V2" -> {}
-            "ONLINE_RANK_TOP3" -> {}
-            "PREPARING" -> {}
-            "ROOM_REAL_TIME_MESSAGE_UPDATE" -> {}
-            "SEND_GIFT" -> {}
-            "STOP_LIVE_ROOM_LIST" -> {}
-            //醒目留言入口提醒（氪金提醒）
-            "SUPER_CHAT_ENTRANCE" -> {}
-            //醒目留言
-            "SUPER_CHAT_MESSAGE" -> {}
-            //醒目留言
-            "SUPER_CHAT_MESSAGE_JPN" -> {}
-            "SYS_MSG" -> {
-                println(dataJson)
-            }
-
-            "USER_TOAST_MSG" -> {}
-            "WATCHED_CHANGE" -> {}
-            "WIDGET_BANNER" -> {}
-            else -> {
-                logger.warn { "Unknown live event: $cmd" }
-                logger.warn { dataJson }
-            }
-        }
-        return null
+    companion object {
+        const val DEFAULT_HEARTBEAT_INTERVAL_MS = 30_000L
+        const val DEFAULT_STABLE_CONNECTION_MS = 30_000L
+        private const val EVENT_BUFFER_CAPACITY = 256
+        private const val SUB_PATH = "/sub"
     }
 }
+
+/** 把异常压成给 UI / 日志用的一行文本 */
+private fun Throwable?.describe(): String? =
+    this?.let { "${it::class.simpleName}: ${it.message ?: "无详细信息"}" }

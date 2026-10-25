@@ -9,6 +9,7 @@ group = "dev.aaa1115910"
 dependencies {
     ksp(libs.koin.ksp.compiler)
     implementation(project(":bili-api:grpc"))
+    implementation(libs.brotli.dec)
     implementation(libs.koin.core)
     implementation(libs.koin.annotations)
     implementation(libs.jsoup)
@@ -20,6 +21,7 @@ dependencies {
     //implementation(libs.ktor.jsoup)
     implementation(libs.ktor.client.okhttp)
     implementation(libs.ktor.client.serialization.kotlinx)
+    implementation(libs.ktor.client.websockets)
     implementation(libs.logging)
     implementation(libs.slf4j.simple)
     testImplementation(libs.kotlin.test)
