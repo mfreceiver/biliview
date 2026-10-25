@@ -30,7 +30,8 @@ fun AkDanmakuPlayer(
                 danmakuPlayer?.release()
             } else {
                 // 引擎生命周期由外部（如 retained ViewModel 的 onCleared）管理：
-                // dispose 只解绑并暂停，避免 Activity 配置重建后引擎被永久释放
+                // stop 只暂停并归零（不置 isReleased、不解绑 view），新组合重新 bindView，
+                // 避免 Activity 配置重建后引擎被永久释放
                 danmakuPlayer?.stop()
             }
         }

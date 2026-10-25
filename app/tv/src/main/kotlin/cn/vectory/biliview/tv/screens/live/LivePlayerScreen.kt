@@ -67,7 +67,7 @@ private const val CONTROLS_HIDE_DELAY_MS = 5_000L
  * - 遥控：控制器隐藏时任意方向键 / OK / MENU 唤出，BACK 退出（清晰度菜单打开时 BACK 只关菜单）
  *
  * 弹幕层始终留在组合里，开关只切 alpha：弹幕引擎的释放由 [LivePlayerViewModel] 的 onCleared 负责
- * （`AkDanmakuPlayer` 传 `releaseOnDispose = false`，dispose 只解绑/暂停），
+ * （`AkDanmakuPlayer` 传 `releaseOnDispose = false`，dispose 只停止/暂停并归零，不释放），
  * 条件移出组合或 Activity 配置重建都不会释放引擎。
  */
 @Composable
