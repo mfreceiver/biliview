@@ -5,7 +5,9 @@
 > NetworkUtil）、README 重写、发版 ABI 纪律落地（debug=x86 / release 仅 armeabi-v7a）、
 > minSdk 23→24 对齐 mitv、buildType/flavor 裁剪（alpha、r8Test、lite 移除，仅 default × debug/release）、
 > 4K 链路实测通过、TV 首页推荐流核对完成、R8 规则遗留盲区复盘关闭（slf4j 已证伪、gdx 真机弹幕正常、
-> VLC 链路已删，2026-10-25；consumer-rules 空文件并入死代码清理）。
+> VLC 链路已删，2026-10-25；consumer-rules 空文件并入死代码清理）、上游残留死代码/未用资源首轮清理
+> （2026-10-25：重复死注释 1 处、失效 ByteDance maven 1 条、无用 string `confirm` 1 条、无引用的
+> adaptive banner 链 3 件；其余 drawable/string/array/color/style 逐项验证均有引用）。
 > 包名与 namespace 全量迁移 `dev.aaa1115910.bv` → `cn.vectory.biliview`（9 处源码目录移动 + 1774 处
 > 词边界替换，全量编译验证；`dev.aaa1115910.biliapi` 等同根独立包与上游 URL 不在范围）、
 > 发版脚本收尾应修项（单调门禁 fail-closed/远端 tag 比对/10# 防八进制、curl 超时、--publish-only
@@ -19,7 +21,14 @@
 
 ## 代码清理（无用功能移除）
 
-- [ ] 上游残留死代码与未用资源清理（注释掉的逻辑、多余 strings/drawable）
+- [ ] 剩余需人工判断的死代码残迹（主体已清，见 git 历史 790accf/c8c77ab）：
+      ① `app/mobile/.../component/player/VideoPlayerPages.kt:134-138` 注释掉的 `VideoPlayerUgcSectionsFilter(...)`
+      调用——受此影响同文件 `:184 private fun VideoPlayerUgcSectionsFilter` 与 `:203 VideoPlayerUgcSectionsFilterChip`
+      全仓无调用方（UGC 分节筛选 UI 未接线）。是「重新接回筛选 UI」还是「连定义一起删」属功能取舍，需人工定；
+      ② `app/mobile/.../component/reply/CommentItem.kt:115-127` 注释掉的点赞按钮块（`//TODO like comment`，
+      内含 `*//*TODO*//*` 嵌套注释 hack），上游未实现评论点赞，保留待定；
+      ③ `//TODO("Not yet implemented")` IDE 脚手架残迹：`app/shared/.../component/BvPlayerPreview.kt` ×9、
+      `player/tv/.../BvPlayer.kt` onIdle 内 1 处（语义上仍是「未实现」标记，保留）。
 
 ## 发版与工程化
 
