@@ -50,10 +50,14 @@ data class LiveQuality(
  * 风控纪律：除进房与用户主动切换清晰度 / 重试外，不发起任何请求（不轮询人气，人气靠弹幕心跳回包）。
  *
  * 生命周期（由 Activity 转发）：
- * - [start]：创建播放器 / 弹幕引擎并加载直播流（仅一次）
+ * - [start]：创建播放器 / 弹幕引擎并加载直播流（仅一次）；取流成功后按当前生命周期状态自动起播
  * - [onStart] / [onStop]：建立 / 断开弹幕 WebSocket
  * - [onResume] / [onPause]：恢复 / 暂停播放
  * - [onCleared]：释放播放器与弹幕引擎
+ *
+ * 生命周期门控：取流是异步的，成功回调可能落在后台（用户按 HOME）。因此这里独立维护
+ * Activity 的 started / resumed 标志（不能用一次性的 [started] 代替），
+ * 取流成功后的「建 WS」「起播」都只在这两个标志为真时发生。
  */
 @KoinViewModel
 class LivePlayerViewModel(
@@ -122,7 +126,15 @@ class LivePlayerViewModel(
         private set
 
     private var started = false
-    private var pausedByLifecycle = false
+
+    /** Activity 已 onStart（可见）：弹幕 WS 只在这个状态下建立 */
+    private var activityStarted = false
+
+    /** Activity 已 onResume（前台可交互）：播放只在这个状态下起播 */
+    private var activityResumed = false
+
+    /** 已成功取到播放地址并 prepare（含重试 / 切清晰度成功），决定回前台是否恢复播放 */
+    private var streamLoaded = false
 
     /** 弹幕命中风控（-352）后熔断：本次播放会话不再尝试连接弹幕 */
     private var danmakuRiskControlBlocked = false
@@ -187,13 +199,13 @@ class LivePlayerViewModel(
         logger.fInfo { "start live player: roomId = $roomId, title = $title, uname = $uname" }
         initPlayer()
         initDanmakuPlayer()
-        loadLiveStream(qn = LIVE_DEFAULT_QN, initial = true)
+        loadLiveStream(qn = LIVE_DEFAULT_QN)
     }
 
     /** 用户手动重试（失败层按钮），沿用当前清晰度 */
     fun retry() {
         if (loading) return
-        loadLiveStream(qn = currentQn, initial = false)
+        loadLiveStream(qn = currentQn)
     }
 
     /**
@@ -228,29 +240,36 @@ class LivePlayerViewModel(
 
     /** Activity.onStart：连接弹幕 WebSocket */
     fun onStart() {
+        activityStarted = true
         if (!started) return
-        // 加载失败（未开播 / 风控 / 网络）时连弹幕毫无意义：只会多打两个请求并立刻失败
-        if (errorMessage != null) return
-        connectWebSocket()
+        // 还没取流成功（加载中 / 未开播 / 风控 / 网络失败）时连弹幕毫无意义：
+        // 只会多打两个请求并立刻失败；成功加载的路径自己会幂等建连
+        if (!streamLoaded || errorMessage != null) return
+        ensureDanmakuConnected()
     }
 
     /** Activity.onResume：恢复播放 */
     fun onResume() {
-        if (!started || !pausedByLifecycle) return
-        pausedByLifecycle = false
+        activityResumed = true
+        if (!started) return
+        // 首次进房时取流还没回来（回调里会自己起播），这里只需处理「回前台恢复」；
+        // 两者都走 streamLoaded 判断，重复 start 对 ExoPlayer 是幂等的
+        if (!streamLoaded || errorMessage != null) return
         videoPlayer?.start()
     }
 
     /** Activity.onPause：暂停播放 */
     fun onPause() {
+        activityResumed = false
         if (!started) return
-        pausedByLifecycle = true
         videoPlayer?.pause()
         danmakuPlayer?.pause()
     }
 
     /** Activity.onStop：断开弹幕 WebSocket 并暂停 */
     fun onStop() {
+        activityStarted = false
+        activityResumed = false
         if (!started) return
         disconnectWebSocket()
         videoPlayer?.pause()
@@ -288,7 +307,7 @@ class LivePlayerViewModel(
         danmakuPlayer = DanmakuPlayer(SimpleRenderer())
     }
 
-    private fun loadLiveStream(qn: Int, initial: Boolean) {
+    private fun loadLiveStream(qn: Int) {
         viewModelScope.launch {
             loading = true
             errorMessage = null
@@ -301,10 +320,14 @@ class LivePlayerViewModel(
                     ?.distinctBy { it.qn }
                     ?.map { LiveQuality(qn = it.qn, description = it.desc) }
                     .orEmpty()
-                liveRepository.getLiveStreamUrl(roomId = roomId, qn = qn)
+                // 复用上面这份 playurl_info 选流：getLiveStreamUrl(roomId) 内部还会再请求一次
+                // 同参数的 v2 getRoomPlayInfo，等于进房打两次，白耗配额还更容易撞风控
+                liveRepository.getLiveStreamUrl(roomInfo = roomInfo)
             }.onSuccess { stream ->
                 playStream(stream)
-                if (initial) connectWebSocket()
+                // 任何一次成功加载（含失败后的重试）都幂等确保弹幕连接；
+                // 但取流期间用户可能已按 HOME，此时不能在后台建 WS（建了立刻又断，纯浪费请求）
+                if (activityStarted) ensureDanmakuConnected()
             }.onFailure { error ->
                 onLoadFailed(error)
             }
@@ -322,8 +345,13 @@ class LivePlayerViewModel(
             currentQualityDescription = stream.qualityDescription
             errorMessage = null
             showBuffering = true
+            streamLoaded = true
             videoPlayer?.playUrl(stream.url, null)
             videoPlayer?.prepare()
+            // 必须显式起播：ExoMediaPlayer 只在 setOptions() 里设 playWhenReady = true，
+            // 而直播链路从不调用 setOptions()，只 prepare() 会一直停在 READY / 首帧不出画面。
+            // 切到后台（onPause 已过）时不抢播，回到前台由 onResume 起播。
+            if (activityResumed) videoPlayer?.start()
         }
     }
 
@@ -339,10 +367,19 @@ class LivePlayerViewModel(
         message.toast(BVApp.context)
     }
 
-    private fun connectWebSocket() {
+    /**
+     * 幂等确保弹幕连接
+     *
+     * 调用方无需关心「是不是首次」：已连上、风控熔断、Activity 不在前台时都直接返回。
+     */
+    private fun ensureDanmakuConnected() {
         if (socketJob?.isActive == true) return
         // 命中风控后本次播放会话不再尝试：重连只会继续打接口、加深风控
-        if (danmakuRiskControlBlocked) return
+        if (danmakuRiskControlBlocked) {
+            // 熔断是终态，提示要一直留着（onStop 也不清），否则回前台就看不到失败原因了
+            connectionHint = DANMAKU_RISK_CONTROL_HINT
+            return
+        }
         val socket = LiveDataWebSocket(
             roomInfoProvider = BiliLiveRoomInfoProvider,
             authRepository = authRepository
@@ -363,7 +400,8 @@ class LivePlayerViewModel(
         socketJob = null
         eventJob?.cancel()
         eventJob = null
-        connectionHint = null
+        // 熔断提示是终态信息：切后台不能清，否则回前台时 ensureDanmakuConnected 直接 return，提示就丢了
+        if (!danmakuRiskControlBlocked) connectionHint = null
         viewModelScope.launch { socket.close() }
         logger.fInfo { "disconnect live danmaku websocket: roomId = $roomId" }
     }
@@ -379,7 +417,11 @@ class LivePlayerViewModel(
             is LiveEvent.Connection.Failed -> {
                 // 风控熔断：终态，之后不再自动重连（LiveDataWebSocket 内部也已停止重连）
                 if (event.riskControl) danmakuRiskControlBlocked = true
-                connectionHint = "弹幕连接失败"
+                connectionHint = if (event.riskControl) {
+                    DANMAKU_RISK_CONTROL_HINT
+                } else {
+                    "弹幕连接失败"
+                }
             }
             is LiveEvent.Connection.Closed -> connectionHint = null
             is LiveEvent.HeartbeatReply -> popularity = event.popularity
@@ -421,5 +463,8 @@ class LivePlayerViewModel(
     companion object {
         private const val LIVE_REFERER = "https://live.bilibili.com"
         private const val LIVE_DANMAKU_TEXT_SIZE = 25
+
+        /** 弹幕风控熔断提示（终态：本次播放会话不再连弹幕，切后台也不清） */
+        private const val DANMAKU_RISK_CONTROL_HINT = "弹幕连接失败（风控），退出重进后恢复"
     }
 }
