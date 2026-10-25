@@ -1,8 +1,9 @@
 package cn.vectory.biliview.repository
 
+import cn.vectory.biliview.entity.carddata.LiveCardData
 import cn.vectory.biliview.entity.live.LiveListPage
-import cn.vectory.biliview.util.fInfo
-import io.github.oshai.kotlinlogging.KotlinLogging
+import dev.aaa1115910.biliapi.entity.live.LiveRoom
+import dev.aaa1115910.biliapi.repositories.LiveRepository as BiliApiLiveRepository
 import org.koin.core.annotation.Single
 
 /**
@@ -43,18 +44,54 @@ interface LiveRepository {
 }
 
 /**
- * 临时实现：返回空列表。
+ * 直播列表的真实数据源，内部委托 bili-api 的 [BiliApiLiveRepository]。
  *
- * bili-api（Lane A）的直播列表仓库合入后，把 Koin 里的这个绑定换成
- * `BiliLiveRepository : LiveRepository`（内部委托 Lane A 的仓库并做一次
- * `LiveItem -> LiveCardData` 映射）即可，UI 与 [cn.vectory.biliview.viewmodel.live.LiveViewModel] 无需改动。
+ * - [LIVE_RECOMMEND_AREA_ID]：走推荐接口（webMain/getMoreRecList），只有一页，`hasMore = false`
+ * - 其他 areaId：走分区接口（index/getList，`parent_area_id = areaId`），
+ *   `hasMore = rooms.isNotEmpty()`（该接口不返回 has_more）
+ *
+ * 错误处理：RiskControlException / IllegalStateException / IO 异常一律向上抛出，
+ * 由 [cn.vectory.biliview.viewmodel.live.LiveViewModel.loadMore] 现有的失败路径统一 toast
+ * （避免仓库层与 ViewModel 重复提示）。
+ *
+ * 注：bili-api 侧接口固定每页 30 条，[pageSize] 仅保留在契约里，当前实现不透传。
  */
 @Single(binds = [LiveRepository::class])
-class EmptyLiveRepository : LiveRepository {
-    private val logger = KotlinLogging.logger("EmptyLiveRepository")
+class BiliLiveRepository(
+    private val liveRepository: BiliApiLiveRepository
+) : LiveRepository {
 
-    override suspend fun getLiveList(areaId: Int, page: Int, pageSize: Int): LiveListPage {
-        logger.fInfo { "live repository not integrated yet, areaId: $areaId, page: $page" }
-        return LiveListPage(items = emptyList(), hasMore = false)
+    override suspend fun getLiveList(
+        areaId: Int,
+        page: Int,
+        pageSize: Int
+    ): LiveListPage {
+        if (areaId == LIVE_RECOMMEND_AREA_ID) {
+            val rooms = liveRepository.getRecommendRooms()
+            return LiveListPage(
+                items = rooms.map { it.toCardData() },
+                hasMore = false
+            )
+        }
+
+        val rooms = liveRepository
+            .getChannelData(parentAreaId = areaId, page = page)
+            .rooms
+            // 分区接口按模块（如“热门主播”“正在直播”）返回，同一房间可能出现在多个模块里
+            .distinctBy { it.roomId }
+        return LiveListPage(
+            items = rooms.map { it.toCardData() },
+            hasMore = rooms.isNotEmpty()
+        )
     }
+
+    private fun LiveRoom.toCardData() = LiveCardData(
+        roomId = roomId,
+        title = title,
+        cover = cover,
+        uname = uname,
+        online = online,
+        areaName = areaName,
+        liveStatus = liveStatus
+    )
 }
