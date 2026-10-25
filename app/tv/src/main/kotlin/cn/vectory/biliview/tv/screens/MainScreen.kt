@@ -43,6 +43,7 @@ import cn.vectory.biliview.tv.activities.user.UserInfoActivity
 import cn.vectory.biliview.tv.screens.main.DrawerContent
 import cn.vectory.biliview.tv.screens.main.DrawerItem
 import cn.vectory.biliview.tv.screens.main.HomeContent
+import cn.vectory.biliview.tv.screens.main.LiveContent
 import cn.vectory.biliview.tv.screens.main.PgcContent
 import cn.vectory.biliview.tv.screens.main.UgcContent
 import cn.vectory.biliview.tv.screens.search.SearchInputScreen
@@ -72,6 +73,7 @@ fun MainScreen(
     val drawerState = rememberDrawerState(initialValue = DrawerValue.Closed)
 
     val mainFocusRequester = remember { FocusRequester() }
+    val liveFocusRequester = remember { FocusRequester() }
     val ugcFocusRequester = remember { FocusRequester() }
     val pgcFocusRequester = remember { FocusRequester() }
     val searchFocusRequester = remember { FocusRequester() }
@@ -90,6 +92,7 @@ fun MainScreen(
     val onFocusToContent: () -> Unit = {
         when (selectedDrawerItem) {
             DrawerItem.Home -> mainFocusRequester.requestFocus()
+            DrawerItem.Live -> liveFocusRequester.requestFocus()
             DrawerItem.UGC -> ugcFocusRequester.requestFocus()
             DrawerItem.PGC -> pgcFocusRequester.requestFocus()
             DrawerItem.Search -> searchFocusRequester.requestFocus()
@@ -150,6 +153,7 @@ fun MainScreen(
             ) { screen ->
                 when (screen) {
                     DrawerItem.Home -> HomeContent(navFocusRequester = mainFocusRequester)
+                    DrawerItem.Live -> LiveContent(navFocusRequester = liveFocusRequester)
                     DrawerItem.UGC -> UgcContent(navFocusRequester = ugcFocusRequester)
                     DrawerItem.PGC -> PgcContent(navFocusRequester = pgcFocusRequester)
                     DrawerItem.Search -> SearchInputScreen(defaultFocusRequester = searchFocusRequester)

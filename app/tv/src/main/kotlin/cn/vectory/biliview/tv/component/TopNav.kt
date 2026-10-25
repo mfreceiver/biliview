@@ -34,6 +34,7 @@ import androidx.tv.material3.Text
 import dev.aaa1115910.biliapi.entity.pgc.PgcType
 import dev.aaa1115910.biliapi.entity.ugc.UgcTypeV2
 import cn.vectory.biliview.BVApp
+import cn.vectory.biliview.repository.LIVE_RECOMMEND_AREA_ID
 import cn.vectory.biliview.util.getDisplayName
 import cn.vectory.biliview.util.ifElse
 import cn.vectory.biliview.util.isKeyDown
@@ -134,6 +135,29 @@ enum class HomeTopNavItem(private val displayName: String) : TopNavItem {
     Recommend("推荐"),
     Popular("热门"),
     Dynamics("动态");
+
+    override fun getDisplayName(context: Context): String {
+        return displayName
+    }
+}
+
+/**
+ * 直播 tab
+ *
+ * [areaId] 是 B 站直播的主分区 id（社区文档 / 网页端 area-tags 的 parentAreaId）：
+ * 1 娱乐、2 网游、3 手游、5 电台、9 虚拟主播；[LIVE_RECOMMEND_AREA_ID] 表示推荐（走首页推荐接口）。
+ * 分区 id 如有变动，只改这里即可。
+ */
+enum class LiveTopNavItem(
+    private val displayName: String,
+    val areaId: Int
+) : TopNavItem {
+    Recommend("推荐", LIVE_RECOMMEND_AREA_ID),
+    Virtual("虚拟主播", 9),
+    OnlineGame("网游", 2),
+    MobileGame("手游", 3),
+    Entertainment("娱乐", 1),
+    Radio("电台", 5);
 
     override fun getDisplayName(context: Context): String {
         return displayName

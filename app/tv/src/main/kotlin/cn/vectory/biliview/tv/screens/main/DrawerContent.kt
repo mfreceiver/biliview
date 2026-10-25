@@ -11,6 +11,7 @@ import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.AccountCircle
 import androidx.compose.material.icons.filled.Home
+import androidx.compose.material.icons.filled.LiveTv
 import androidx.compose.material.icons.filled.Movie
 import androidx.compose.material.icons.filled.OndemandVideo
 import androidx.compose.material.icons.filled.Search
@@ -142,6 +143,7 @@ fun NavigationDrawerScope.DrawerContent(
             listOf(
                 DrawerItem.Search,
                 DrawerItem.Home,
+                DrawerItem.Live,
                 DrawerItem.UGC,
                 DrawerItem.PGC,
             ).forEach { item ->
@@ -190,6 +192,7 @@ enum class DrawerItem(
     User(displayName = "点击登录", displayIcon = Icons.Default.AccountCircle),
     Search(displayName = "搜索", displayIcon = Icons.Default.Search),
     Home(displayName = "首页", displayIcon = Icons.Default.Home),
+    Live(displayName = "直播", displayIcon = Icons.Default.LiveTv),
     UGC(displayName = "UGC", displayIcon = Icons.Default.OndemandVideo),
     PGC(displayName = "PGC", displayIcon = Icons.Default.Movie),
     Settings(displayName = "设置", displayIcon = Icons.Default.Settings), ;
