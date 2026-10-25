@@ -14,14 +14,21 @@
 > 词边界替换，全量编译验证；`dev.aaa1115910.biliapi` 等同根独立包与上游 URL 不在范围）、
 > 发版脚本收尾应修项（单调门禁 fail-closed/远端 tag 比对/10# 防八进制、curl 超时、--publish-only
 > 校验、assert 补 SDK/debuggable/testOnly 断言、mapping.txt 归档、signing.properties 仅 release
-> fail-closed）。实机基线：2026-10-24 用户实测电视可安装当前 release（minSdk 24，当时为 arm 双 ABI，后收敛为仅 armeabi-v7a）。
+> fail-closed）、直播播放页缺陷回修（2026-10-25 终审发现，全部已修：① 首次进房只 prepare 不 start、
+> 停在 READY 不出画面；② 取流任务不随 onStop 门控，加载中按 HOME 仍会在后台建弹幕 WS；
+> ③ 重试成功不恢复弹幕连接；④ 进房对同参数 v2 `getRoomPlayInfo` 打两次（bili-api 新增
+> `getLiveStreamUrl(roomInfo)` 重载复用第一份数据）；⑤ 风控熔断提示被 onStop 清掉。修复点见
+> `LivePlayerViewModel.kt` 生命周期门控与 `LiveRepository.kt` 流选择重载，真机冒烟见下条）。
+> 实机基线：2026-10-24 用户实测电视可安装当前 release（minSdk 24，当时为 arm 双 ABI，后收敛为仅 armeabi-v7a）。
 
 ## 功能缺口
 
 - [ ] 直播真机验证（入口 / 频道页 / 播放页 / 弹幕已落地，2026-10-25）：
       ① 弹幕协议字段校准：`DANMU_MSG` 的 color / uname / uid 实机抽样核对，brotli 分片拼接边界；
       ② FLV 实机稳定性：长时间播放、切后台回前台重连、弱网退避重连表现；
-      ③ 清晰度切换：`g_qn_desc` 选项与实机可切换范围一致性、切换后不黑屏
+      ③ 清晰度切换：`g_qn_desc` 选项与实机可切换范围一致性、切换后不黑屏；
+      ④ 首进自动起播：进房即出画面（无需手动操作），加载中按 HOME 回前台后画面与弹幕均恢复，
+         风控熔断时「弹幕连接失败（风控）」提示切后台再回来仍在（本次回修项，待真机确认）
 
 ## 代码清理（无用功能移除）
 
