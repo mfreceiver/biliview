@@ -5,7 +5,7 @@
 > NetworkUtil）、README 重写、发版 ABI 纪律落地（debug=x86 / release 仅 armeabi-v7a）、
 > minSdk 23→24 对齐 mitv、buildType/flavor 裁剪（alpha、r8Test、lite 移除，仅 default × debug/release）、
 > 4K 链路实测通过、TV 首页推荐流核对完成、R8 规则遗留盲区复盘关闭（slf4j 已证伪、gdx 真机弹幕正常、
-> VLC 链路已删、consumer-rules 空文件已处理，2026-10-25）。
+> VLC 链路已删，2026-10-25；consumer-rules 空文件并入死代码清理）。
 > 包名与 namespace 全量迁移 `dev.aaa1115910.bv` → `cn.vectory.biliview`（9 处源码目录移动 + 1774 处
 > 词边界替换，全量编译验证；`dev.aaa1115910.biliapi` 等同根独立包与上游 URL 不在范围）、
 > 发版脚本收尾应修项（单调门禁 fail-closed/远端 tag 比对/10# 防八进制、curl 超时、--publish-only
