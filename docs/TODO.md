@@ -4,7 +4,9 @@
 > 已完成基线（不在此列，见 git 历史）：黑名单机制移除、大陆区域拦截移除（RegionBlockScreen×2 +
 > NetworkUtil）、README 重写、发版 ABI 纪律落地（debug=x86 / release 仅 armeabi-v7a）、
 > minSdk 23→24 对齐 mitv、buildType/flavor 裁剪（alpha、r8Test、lite 移除，仅 default × debug/release）、
-> 4K 链路实测通过、TV 首页推荐流核对完成、R8 规则遗留盲区复盘关闭（slf4j 已证伪、gdx 真机弹幕正常、
+> 4K 链路实测通过、TV 首页推荐流核对完成、直播链路落地（2026-10-25：BiliLiveRepository 接线、
+> LivePlayerActivity + LivePlayerScreen + LivePlayerViewModel、LiveDataWebSocket 实时弹幕、清晰度菜单）、
+> R8 规则遗留盲区复盘关闭（slf4j 已证伪、gdx 真机弹幕正常、
 > VLC 链路已删，2026-10-25；consumer-rules 空文件并入死代码清理）、上游残留死代码/未用资源首轮清理
 > （2026-10-25：重复死注释 1 处、失效 ByteDance maven 1 条、无用 string `confirm` 1 条、无引用的
 > adaptive banner 链 3 件；其余 drawable/string/array/color/style 逐项验证均有引用）。
@@ -16,8 +18,10 @@
 
 ## 功能缺口
 
-- [ ] 直播 UI：API 层已齐（`BiliLiveHttpApi`：getRoomPlayInfo / getDanmuInfo / playUrl 等），
-      但 app 内无任何直播界面与 ViewModel；需补入口、频道页、播放与弹幕
+- [ ] 直播真机验证（入口 / 频道页 / 播放页 / 弹幕已落地，2026-10-25）：
+      ① 弹幕协议字段校准：`DANMU_MSG` 的 color / uname / uid 实机抽样核对，brotli 分片拼接边界；
+      ② FLV 实机稳定性：长时间播放、切后台回前台重连、弱网退避重连表现；
+      ③ 清晰度切换：`g_qn_desc` 选项与实机可切换范围一致性、切换后不黑屏
 
 ## 代码清理（无用功能移除）
 
