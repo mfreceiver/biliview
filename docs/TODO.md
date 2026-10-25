@@ -4,6 +4,8 @@
 > 已完成基线（不在此列，见 git 历史）：黑名单机制移除、大陆区域拦截移除（RegionBlockScreen×2 +
 > NetworkUtil）、README 重写、发版 ABI 纪律落地（debug=x86 / release 仅 armeabi-v7a）、
 > minSdk 23→24 对齐 mitv、buildType/flavor 裁剪（alpha、r8Test、lite 移除，仅 default × debug/release）、
+> 4K 链路实测通过、TV 首页推荐流核对完成、R8 规则遗留盲区复盘关闭（slf4j 已证伪、gdx 真机弹幕正常、
+> VLC 链路已删、consumer-rules 空文件已处理，2026-10-25）。
 > 包名与 namespace 全量迁移 `dev.aaa1115910.bv` → `cn.vectory.biliview`（9 处源码目录移动 + 1774 处
 > 词边界替换，全量编译验证；`dev.aaa1115910.biliapi` 等同根独立包与上游 URL 不在范围）、
 > 发版脚本收尾应修项（单调门禁 fail-closed/远端 tag 比对/10# 防八进制、curl 超时、--publish-only
@@ -14,10 +16,6 @@
 
 - [ ] 直播 UI：API 层已齐（`BiliLiveHttpApi`：getRoomPlayInfo / getDanmuInfo / playUrl 等），
       但 app 内无任何直播界面与 ViewModel；需补入口、频道页、播放与弹幕
-- [ ] 4K（qn=127 + fourk=1）链路端到端实测：网页版 playurl + 大会员账号在真机的解码表现
-      （HEVC/AV1/HDR 硬解机型差异）
-- [ ] TV 首页推荐流调优：上游推荐位是否即网页版 `/wbi/index/top/feed/rcmd`（fresh_type=4），
-      与预期"网页版推荐内容"核对并调整
 
 ## 代码清理（无用功能移除）
 
@@ -39,15 +37,6 @@
       暂不启用 configuration cache
 - [ ] 上游同步策略：与 aaa1115910/bv@develop 的更新如何跟进（本仓库历史已重新初始化，
       无法直接 merge，需 vendor 重导入或 patch 流程）
-- [ ] R8 规则的遗留盲区（2026-10-24 加固后复盘，发货 APK 的 mapping 取证）：
-      ① ~~slf4j ServiceLoader~~ 已证伪并关闭：R8 内建 ServiceLoader 重写把服务文件一起改名，
-      APK 内 `META-INF/services/rs9` 内容 = `kl4 qta`，解析为 com.gitlab.mvysny.slf4j.HandroidServiceProvider
-      与 org.slf4j.simple.SimpleServiceProvider，两者都在 dex 里，日志走 logcat 正常 —— 无需 keep；
-      ② com.badlogic.gdx 20 个类全部被改名（akdanmaku 引擎依赖 gdx 类型），gdx 若有反射/JNI 回调面，
-      需真机确认弹幕是否正常；
-      ③ LibVLC 空转 keep 与整条 VLC 链路已删（2026-10-24，见 commit「删除上游遗留的 VLC 解码链路」）；
-      ④ consumer-rules.pro：删掉 app/{shared,tv,mobile} 三个未接线的空文件；player/{core,shared,tv,mobile}、
-      player、utils 六处仍由 consumerProguardFiles 引用，留作占位——将来依赖库需要专属规则时写在这里
 
 ## 风控与账号安全
 
