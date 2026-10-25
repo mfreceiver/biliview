@@ -8,8 +8,8 @@ object AppConfiguration {
     const val targetSdk = 36
     const val jdk = 21
     private const val major = 0
-    private const val minor = 2
-    private const val patch = 1
+    private const val minor = 3
+    private const val patch = 0
     // 版本号核心固定三位（major.minor.patch）：修复版（hotfix）也走 patch 位递增，不设第四位
 
     // 版本号必须每次构建现算：buildSrc 的类在 Gradle daemon 里跨构建复用 classloader，
