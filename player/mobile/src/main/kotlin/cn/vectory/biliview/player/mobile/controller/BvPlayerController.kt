@@ -103,7 +103,6 @@ fun BvPlayerController(
     val view = LocalView.current
 
     //TODO 临时解决方案，应该根据手机垂直方向来屏幕宽度
-    //val screenHeight = with(density) { context.resources.displayMetrics.heightPixels.toDp() }
     val screenWidth = with(density) { context.resources.displayMetrics.widthPixels.toDp() }
     val screenHeight = with(density) { context.resources.displayMetrics.heightPixels.toDp() }
 
