@@ -85,8 +85,15 @@ sealed interface LiveEvent {
         /** 连接断开，[delayMs] 毫秒后进行第 [attempt] 次重连 */
         data class Reconnecting(val attempt: Int, val delayMs: Long, val cause: String?) : Connection
 
-        /** 重连次数耗尽 / 无法恢复，不再重连 */
-        data class Failed(val cause: String?) : Connection
+        /**
+         * 重连次数耗尽 / 无法恢复，不再重连
+         *
+         * @param riskControl 是否因风控（-352）熔断；为 true 时调用方应停止本次会话的一切重连尝试
+         */
+        data class Failed(
+            val cause: String?,
+            val riskControl: Boolean = false,
+        ) : Connection
 
         /** 主动关闭（调用 [LiveDataWebSocket.close] 或取消连接 Job） */
         data object Closed : Connection

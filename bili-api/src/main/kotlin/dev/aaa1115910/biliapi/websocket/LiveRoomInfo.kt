@@ -31,14 +31,19 @@ interface LiveRoomInfoProvider {
  * 默认实现：走 [BiliLiveHttpApi]。
  *
  * 每次（重）连都会重新获取 token，避免 token 过期后陷入无限重连。
+ *
+ * 风控纪律：
+ * - 响应统一走 `getResponseData()`，-352 会抛 `RiskControlException` 而不是被压成
+ *   [LiveConnectionException]（后者会被上层当成网络抖动无限重连，每次都重打两个请求）。
+ * - 只打 `getDanmuInfo` 一个请求：[getLiveRoomInfo] 的调用方（直播列表 / 播放页）传入的
+ *   已经是官方接口返回的真实 roomId，不再额外调 v1 `getRoomPlayInfo` 反查房间号。
+ *   若上游确实只拿到短号（shortId ≠ 0 且未换算），由上游先换算成真实房间号再传进来。
  */
 object BiliLiveRoomInfoProvider : LiveRoomInfoProvider {
     override suspend fun getLiveRoomInfo(roomId: Int): LiveRoomInfo {
-        val danmuInfo = BiliLiveHttpApi.getLiveDanmuInfo(roomId).data
-            ?: throw LiveConnectionException("获取直播间 $roomId 的弹幕服务器信息失败")
-        val realRoomId = BiliLiveHttpApi.getLiveRoomPlayInfo(roomId).data?.roomId ?: roomId
+        val danmuInfo = BiliLiveHttpApi.getLiveDanmuInfo(roomId).getResponseData()
         return LiveRoomInfo(
-            roomId = realRoomId,
+            roomId = roomId,
             token = danmuInfo.token,
             hosts = danmuInfo.hostList.map { LiveHost(host = it.host, wssPort = it.wssPort) },
         )

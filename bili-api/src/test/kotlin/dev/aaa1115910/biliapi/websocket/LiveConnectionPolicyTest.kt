@@ -2,6 +2,7 @@ package dev.aaa1115910.biliapi.websocket
 
 import org.junit.jupiter.api.Test
 import kotlin.test.assertEquals
+import kotlin.test.assertNotNull
 import kotlin.test.assertNull
 
 /**
@@ -50,6 +51,18 @@ internal class LiveConnectionPolicyTest {
         val policy = ReconnectPolicy(maxAttempts = 0)
 
         assertNull(policy.nextDelayMs())
+    }
+
+    @Test
+    fun `默认重连次数有限且耗尽后返回 null`() {
+        val policy = ReconnectPolicy()
+
+        assertEquals(ReconnectPolicy.DEFAULT_MAX_ATTEMPTS, policy.maxAttempts)
+        repeat(ReconnectPolicy.DEFAULT_MAX_ATTEMPTS) {
+            assertNotNull(policy.nextDelayMs(), "第 ${it + 1} 次重连应仍在限额内")
+        }
+        assertNull(policy.nextDelayMs(), "超过默认上限后应放弃重连")
+        assertEquals(ReconnectPolicy.DEFAULT_MAX_ATTEMPTS, policy.attempt)
     }
 
     @Test

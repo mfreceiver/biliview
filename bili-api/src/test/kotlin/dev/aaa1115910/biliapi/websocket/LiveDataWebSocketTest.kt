@@ -1,5 +1,6 @@
 package dev.aaa1115910.biliapi.websocket
 
+import dev.aaa1115910.biliapi.http.entity.RiskControlException
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.channels.Channel
@@ -170,6 +171,33 @@ internal class LiveDataWebSocketTest {
     }
 
     @Test
+    fun `命中风控时熔断不再重连`() = runBlocking {
+        val factory = FakeSocketFactory()
+        val provider = RiskControlRoomInfoProvider()
+        val ws = createSocket(factory, provider)
+        val recorder = EventRecorder(ws, this).start()
+        val disconnects = mutableListOf<LiveDisconnectInfo>()
+        try {
+            val job = ws.connect(ROOM_ID, this) { disconnects += it }
+            val failed = recorder.awaitTyped<LiveEvent.Connection.Failed>()
+
+            assertTrue(failed.riskControl, "风控失败应带 riskControl 标记，实际: $failed")
+            assertTrue(job.isCompleted)
+            assertEquals(1, provider.calls, "风控后不应再拉取弹幕信息")
+            assertEquals(emptyList(), factory.attempts, "风控后不应再连弹幕服务器")
+            assertEquals(false, disconnects.single().willReconnect)
+            assertEquals(
+                emptyList(),
+                recorder.snapshot().filterIsInstance<LiveEvent.Connection.Reconnecting>(),
+                "风控不应产生重连事件",
+            )
+        } finally {
+            ws.close()
+            recorder.stop()
+        }
+    }
+
+    @Test
     fun `close 会关闭 socket 并停止重连`() = runBlocking {
         val factory = FakeSocketFactory()
         val ws = createSocket(factory, FakeRoomInfoProvider())
@@ -326,6 +354,17 @@ internal class LiveDataWebSocketTest {
                     LiveHost("h2.example.com", 443),
                 ),
             )
+        }
+    }
+
+    /** 模拟 getDanmuInfo 返回 -352 */
+    private class RiskControlRoomInfoProvider : LiveRoomInfoProvider {
+        var calls = 0
+            private set
+
+        override suspend fun getLiveRoomInfo(roomId: Int): LiveRoomInfo {
+            calls++
+            throw RiskControlException("请求过于频繁")
         }
     }
 

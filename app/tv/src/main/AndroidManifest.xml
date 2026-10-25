@@ -49,7 +49,7 @@
         <activity
             android:name=".activities.live.LivePlayerActivity"
             android:enableOnBackInvokedCallback="false"
-            android:exported="true"
+            android:exported="false"
             android:label="@string/title_activity_live_player"
             android:screenOrientation="landscape"
             android:theme="@style/Theme.BV.TV" />

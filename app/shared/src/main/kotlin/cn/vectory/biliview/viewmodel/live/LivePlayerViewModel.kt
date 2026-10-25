@@ -123,6 +123,9 @@ class LivePlayerViewModel(
 
     private var started = false
     private var pausedByLifecycle = false
+
+    /** 弹幕命中风控（-352）后熔断：本次播放会话不再尝试连接弹幕 */
+    private var danmakuRiskControlBlocked = false
     private var liveDataWebSocket: LiveDataWebSocket? = null
     private var socketJob: Job? = null
     private var eventJob: Job? = null
@@ -226,6 +229,8 @@ class LivePlayerViewModel(
     /** Activity.onStart：连接弹幕 WebSocket */
     fun onStart() {
         if (!started) return
+        // 加载失败（未开播 / 风控 / 网络）时连弹幕毫无意义：只会多打两个请求并立刻失败
+        if (errorMessage != null) return
         connectWebSocket()
     }
 
@@ -336,6 +341,8 @@ class LivePlayerViewModel(
 
     private fun connectWebSocket() {
         if (socketJob?.isActive == true) return
+        // 命中风控后本次播放会话不再尝试：重连只会继续打接口、加深风控
+        if (danmakuRiskControlBlocked) return
         val socket = LiveDataWebSocket(
             roomInfoProvider = BiliLiveRoomInfoProvider,
             authRepository = authRepository
@@ -369,7 +376,11 @@ class LivePlayerViewModel(
             is LiveEvent.Connection.Reconnecting ->
                 connectionHint = "弹幕重连中（第 ${event.attempt} 次）"
 
-            is LiveEvent.Connection.Failed -> connectionHint = "弹幕连接失败"
+            is LiveEvent.Connection.Failed -> {
+                // 风控熔断：终态，之后不再自动重连（LiveDataWebSocket 内部也已停止重连）
+                if (event.riskControl) danmakuRiskControlBlocked = true
+                connectionHint = "弹幕连接失败"
+            }
             is LiveEvent.Connection.Closed -> connectionHint = null
             is LiveEvent.HeartbeatReply -> popularity = event.popularity
             is LiveEvent.RoomChange -> {

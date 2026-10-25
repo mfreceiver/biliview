@@ -7,13 +7,17 @@ import kotlin.math.pow
  *
  * 连续掉线时依次等待 `initialDelayMs * multiplier^n`，上限 [maxDelayMs]（默认 30s）；
  * 连接稳定超过阈值后由 [LiveDataWebSocket] 调用 [reset] 清零。
+ *
+ * 默认重连次数有限（[DEFAULT_MAX_ATTEMPTS] 次，累计约 2 分钟），耗尽后
+ * [LiveDataWebSocket] 会发 `Connection.Failed` 进入终态（UI「弹幕连接失败」），
+ * 不会无限重连持续打接口。
  */
 class ReconnectPolicy(
     private val initialDelayMs: Long = 1_000,
     private val maxDelayMs: Long = 30_000,
     private val multiplier: Double = 2.0,
     /** 最大连续重连次数，[Int.MAX_VALUE] 表示一直重连 */
-    val maxAttempts: Int = Int.MAX_VALUE,
+    val maxAttempts: Int = DEFAULT_MAX_ATTEMPTS,
 ) {
     init {
         require(initialDelayMs > 0) { "initialDelayMs 必须大于 0" }
@@ -38,6 +42,11 @@ class ReconnectPolicy(
 
     fun reset() {
         attempt = 0
+    }
+
+    companion object {
+        /** 默认最大连续重连次数：1+2+4+8+16+30×3 ≈ 2 分钟后进入终态 */
+        const val DEFAULT_MAX_ATTEMPTS = 8
     }
 }
 

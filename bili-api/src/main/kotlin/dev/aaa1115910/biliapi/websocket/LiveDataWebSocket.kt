@@ -1,5 +1,6 @@
 package dev.aaa1115910.biliapi.websocket
 
+import dev.aaa1115910.biliapi.http.entity.RiskControlException
 import dev.aaa1115910.biliapi.repositories.AuthRepository
 import io.github.oshai.kotlinlogging.KotlinLogging
 import kotlinx.coroutines.CancellationException
@@ -42,7 +43,9 @@ enum class LiveCompression(val protoVer: Int) {
  * 语义：
  * - [connect] 返回 [Job]，调用方可直接 `cancel()`；[close] 会取消内部 Job 并彻底关闭 socket。
  * - 连接断开（服务端关闭、网络错误、认证失败）后按 [ReconnectPolicy] 指数退避重连，
- *   每次重连都会重新拉取 token 与主机列表并重新认证。
+ *   每次重连都会重新拉取 token 与主机列表并重新认证；次数耗尽后发 [LiveEvent.Connection.Failed] 进入终态。
+ * - 命中风控（`RiskControlException`，-352）时不再重连，立即发 [LiveEvent.Connection.Failed]（`riskControl = true`），
+ *   避免反复请求加深风控。
  * - 事件经 [events] 单向下发；未识别的 cmd 只记 debug 日志，不会中断连接。
  */
 class LiveDataWebSocket(
@@ -95,6 +98,10 @@ class LiveDataWebSocket(
     @Volatile
     private var lastConnectionWasStable = false
 
+    /** 本次连接是否以 [LiveEvent.Connection.Failed] 终态结束（此时不再补发 Closed，避免 UI 清掉失败提示） */
+    @Volatile
+    private var endedWithFailure = false
+
     val isConnected: Boolean
         get() = connectedSinceMillis > 0L
 
@@ -109,6 +116,7 @@ class LiveDataWebSocket(
         scope: CoroutineScope,
         onDisconnect: ((LiveDisconnectInfo) -> Unit)? = null,
     ): Job {
+        endedWithFailure = false
         val job = scope.launch(start = CoroutineStart.LAZY) {
             runCatching { runConnection(roomId, onDisconnect) }
                 .onFailure { if (it is CancellationException) throw it else logger.error(it) { "弹幕连接异常退出" } }
@@ -116,7 +124,8 @@ class LiveDataWebSocket(
         job.invokeOnCompletion { cause ->
             if (jobRef.compareAndSet(job, null)) {
                 connectedSinceMillis = 0L
-                _events.tryEmit(LiveEvent.Connection.Closed)
+                // 以 Failed 终态结束时不再补发 Closed：否则调用方会把「弹幕连接失败」的提示清掉
+                if (!endedWithFailure) _events.tryEmit(LiveEvent.Connection.Closed)
             }
             if (cause != null && cause !is CancellationException) {
                 logger.debug(cause) { "弹幕连接结束" }
@@ -166,9 +175,15 @@ class LiveDataWebSocket(
             }
             lastConnectionWasStable = false
 
-            val delayMs = reconnectPolicy.nextDelayMs()
+            // 风控（-352）重连也没用：直接放弃，不再退避重试
+            val fatal = cause.isFatal()
+            val delayMs = if (fatal) null else reconnectPolicy.nextDelayMs()
             if (delayMs == null) {
-                _events.tryEmit(LiveEvent.Connection.Failed(cause.describe()))
+                endedWithFailure = true
+                if (fatal) {
+                    logger.warn { "弹幕连接命中风控，不再重连: ${cause?.message}" }
+                }
+                _events.tryEmit(LiveEvent.Connection.Failed(cause.describe(), riskControl = fatal))
                 onDisconnect?.invoke(
                     LiveDisconnectInfo(
                         reason = cause?.describe(),
@@ -212,6 +227,8 @@ class LiveDataWebSocket(
             } catch (e: CancellationException) {
                 throw e
             } catch (e: Throwable) {
+                // 风控不是主机问题，换主机重试没有意义，直接抛给上层熔断
+                if (e.isFatal()) throw e
                 logger.debug(e) { "连接弹幕服务器 ${host.host}:${host.wssPort} 失败" }
                 lastError = e
                 continue
@@ -303,3 +320,10 @@ class LiveDataWebSocket(
 /** 把异常压成给 UI / 日志用的一行文本 */
 private fun Throwable?.describe(): String? =
     this?.let { "${it::class.simpleName}: ${it.message ?: "无详细信息"}" }
+
+/**
+ * 该异常是否属于「重连也没用」的致命错误
+ *
+ * 风控（-352）继续重连只会反复打接口、加深风控，因此直接进入 [LiveEvent.Connection.Failed] 终态。
+ */
+private fun Throwable?.isFatal(): Boolean = this is RiskControlException
