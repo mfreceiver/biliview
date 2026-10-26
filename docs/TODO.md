@@ -23,9 +23,20 @@
 
 ## 功能缺口
 
+- [ ] 替换发版 v0.3.2（2026-10-26 深夜进行中）：用户要求完成 opus 建议（BiliLiveHttpApi 相对路径
+      调用统一迁 loggedGet）后重新发版，版本号保持 0.3.2、替换 Gitea 上已上传的文件。
+      步骤：① glm 迁移 commit（进行中，会话重启后如未完成需重派：getLiveDanmuInfo /
+      getLiveRoomPlayInfo(v1，无调用方可删) / getLiveAreaList / getLiveDanmuHistory 四方法迁
+      loggedGet，遵守 449b502 纪律 build lambda 直传+绝对 URL）→ ② 核验 diff + 构建绿 →
+      ③ push → ④ 删除远端旧 tag v0.3.2.r60.dce3dde 及其 Gitea release（git push --delete +
+      Gitea API http://192.168.3.252:11330，仓库 mfreceiver/biliview）→ ⑤
+      GRADLE_OPTS="-Dorg.gradle.parallel=false -Dorg.gradle.workers.max=2"
+      ./scripts/release_build.sh --publish（新 tag r 号随提交数自然增大，版本名仍 0.3.2）。
+      完成后本条移除。
+
 - [ ] 安装 v0.3.2 到电视并按「直播推荐个性化实机观察」条目实机观察
       （192.168.3.32:5555，TCL 三连安装法见 docs/TV_ADB_UPDATE.md）。
-      用户指示本次发版后不实机安装，安装留待后续。
+      用户指示本次发版后不实机安装，安装留待后续（替换发版完成后安装最新 0.3.2 产物）。
 
 - [ ] 公共目录账号库自动加载/切换真机验证（2026-10-26 已实现：`AccountBackupManager` +
       `UserRepository.syncAccountBackup/loadAccountBackup` + BVApp 冷启动异步恢复；账号库文件为
