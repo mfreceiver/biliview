@@ -26,6 +26,11 @@ const val LIVE_DEFAULT_PAGE_SIZE = 30
 const val LIVE_DEFAULT_QN = 10000
 
 /**
+ * 首页接口 `room_list` 中「推荐直播」模块的 module_info.id
+ */
+const val HOME_RECOMMEND_MODULE_ID = 3
+
+/**
  * 直播数据仓库：房间详情、播放地址、列表三组能力
  *
  * 风控约定：所有 HTTP 响应统一走 `getResponseData()`，
@@ -114,14 +119,27 @@ class LiveRepository(
      *
      * 与 [getRecommendRooms]（getMoreRecList 分页端点）不同：这是网页直播首页首屏接口，
      * 带 SESSDATA 预期个性化推荐（服务器行为）；无分页语义，`hasMore` 恒 false 由调用方处理。
+     *
+     * 条数：响应顶层 `recommend_room_list` 仅约 5 条，同响应 `room_list` 中
+     * `module_info.id == 3`「推荐直播」模块约 10 条（其前 5 条即 recommend_room_list），
+     * 两者合并后按 roomId 去重，约 10 条、零额外请求；仍可能少于 getMoreRecList 旧路径
+     * 的 12 条，接受此差异。
+     *
+     * 注：首页接口的房间 item 无 `uid` 字段，[LiveRoom.uid] 恒为 0（列表卡片不使用该字段）。
      */
-    suspend fun getHomeRecommendRooms(): List<LiveRoom> =
-        BiliLiveHttpApi.getLiveHomeList(
+    suspend fun getHomeRecommendRooms(): List<LiveRoom> {
+        val data = BiliLiveHttpApi.getLiveHomeList(
             sessdata = authRepository.sessionData,
             buvid3 = authRepository.buvid3
         ).getResponseData()
-            .recommendRoomList
+        return (data.recommendRoomList.asSequence() + data.roomList
+            .asSequence()
+            .filter { it.moduleInfo.id == HOME_RECOMMEND_MODULE_ID }
+            .flatMap { it.list.asSequence() })
+            .distinctBy { it.roomId }
             .map { LiveRoom.fromBrief(it) }
+            .toList()
+    }
 
     /**
      * 直播频道页（`index/getList`，按主分区模块化聚合）

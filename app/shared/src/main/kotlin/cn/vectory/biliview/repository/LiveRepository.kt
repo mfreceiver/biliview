@@ -4,7 +4,9 @@ import android.util.Log
 import cn.vectory.biliview.entity.carddata.LiveCardData
 import cn.vectory.biliview.entity.live.LiveListPage
 import dev.aaa1115910.biliapi.entity.live.LiveRoom
+import dev.aaa1115910.biliapi.http.entity.RiskControlException
 import dev.aaa1115910.biliapi.repositories.LiveRepository as BiliApiLiveRepository
+import kotlinx.coroutines.CancellationException
 import org.koin.core.annotation.Single
 
 private const val TAG = "LiveAPI"
@@ -13,11 +15,10 @@ private const val TAG = "LiveAPI"
  * 推荐 tab 使用的分区 id 占位值。
  *
  * 真实分区 id 见 [cn.vectory.biliview.tv.component.LiveTopNavItem]，数据层遇到
- * [LIVE_RECOMMEND_AREA_ID] 时走“更多推荐”接口（xlive/web-interface/v1/webMain/getMoreRecList），
+ * [LIVE_RECOMMEND_AREA_ID] 时走网页首页同款推荐接口（xlive/web-interface/v1/index/getList，
+ * 无 parent_area_id，带 SESSDATA 个性化，约 10 条），失败/空列表保守降级回
+ * getMoreRecList（xlive/web-interface/v1/webMain/getMoreRecList）；
  * 遇到其他值走分区频道页接口（xlive/web-interface/v1/index/getList，parent_area_id = areaId）。
- *
- * TODO(实机诊断) 条目已完成：推荐 tab 已改走网页首页同款 `index/getList`（无 parent_area_id，
- * 带 SESSDATA 个性化）；失败/空列表保守降级回 getMoreRecList。见 [BiliLiveRepository]。
  */
 const val LIVE_RECOMMEND_AREA_ID = 0
 
@@ -52,8 +53,9 @@ interface LiveRepository {
 /**
  * 直播列表的真实数据源，内部委托 bili-api 的 [BiliApiLiveRepository]。
  *
- * - [LIVE_RECOMMEND_AREA_ID]：走首页推荐接口（index/getList 无 parent_area_id，带 SESSDATA 个性化），
- *   空列表/异常降级 getMoreRecList，只有一页，`hasMore = false`
+ * - [LIVE_RECOMMEND_AREA_ID]：走首页推荐接口（index/getList 无 parent_area_id，带 SESSDATA 个性化，
+ *   recommend_room_list 与 room_list「推荐直播」模块合并后约 10 条），空列表/异常降级 getMoreRecList
+ *   （RiskControlException/-352 不降级直接上抛），只有一页，`hasMore = false`
  * - 其他 areaId：走分区接口（index/getList，`parent_area_id = areaId`），
  *   `hasMore = rooms.isNotEmpty()`（该接口不返回 has_more）
  *
@@ -99,8 +101,13 @@ class BiliLiveRepository(
             // 空列表/异常保守降级回 getMoreRecList，别让推荐 tab 白屏。
             val rooms = try {
                 liveRepository.getHomeRecommendRooms()
+            } catch (c: CancellationException) {
+                throw c
             } catch (t: Throwable) {
-                Log.w(TAG, "getHomeRecommendRooms failed, fallback to getMoreRecList: ${t.javaClass.name}: ${t.message}")
+                // -352 风控必须原样上抛退避（AGENTS.md 纪律），不能吞掉后立即再打 getMoreRecList 加重风控；
+                // 过期登录态（AuthFailureException / -101）等其余异常仍允许降级匿名。
+                if (t is RiskControlException) throw t
+                Log.w(TAG, "getHomeRecommendRooms failed, fallback to getMoreRecList: ${t.javaClass.name}: ${t.message}", t)
                 emptyList()
             }
             if (rooms.isNotEmpty()) {

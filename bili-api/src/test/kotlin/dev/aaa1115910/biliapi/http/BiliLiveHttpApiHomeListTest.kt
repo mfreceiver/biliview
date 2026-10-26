@@ -64,7 +64,7 @@ class BiliLiveHttpApiHomeListTest {
                 }
               ],
               "banner": [],
-              "cover_source": "",
+              "cover_source": 0,
               "area_entrance_v2": {"list": []}
             }
             """.trimIndent()
@@ -74,6 +74,16 @@ class BiliLiveHttpApiHomeListTest {
         assertEquals(1, data.recommendRoomList.first().watchedShow?.num)
         assertEquals(1, data.roomList.size)
         assertEquals(456L, data.roomList.first().list.first().roomId)
+    }
+
+    @Test
+    fun parseHomeListDataCoverSourceAsString() {
+        // cover_source 实测类型不稳定（真实响应见过数字 0，也见过字符串），JsonPrimitive 兼容两种
+        val json = Json { ignoreUnknownKeys = true; coerceInputValues = true }
+        val data = json.decodeFromString<LiveIndexListData>(
+            """{"recommend_room_list": [], "room_list": [], "cover_source": ""}"""
+        )
+        assertEquals(0, data.recommendRoomList.size)
     }
 
     // ---- 联网回归 ----

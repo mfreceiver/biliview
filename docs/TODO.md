@@ -23,6 +23,10 @@
 
 ## 功能缺口
 
+- [ ] 安装 v0.3.2 到电视并按「直播推荐个性化实机观察」条目实机观察
+      （192.168.3.32:5555，TCL 三连安装法见 docs/TV_ADB_UPDATE.md）。
+      用户指示本次发版后不实机安装，安装留待后续。
+
 - [ ] 公共目录账号库自动加载/切换真机验证（2026-10-26 已实现：`AccountBackupManager` +
       `UserRepository.syncAccountBackup/loadAccountBackup` + BVApp 冷启动异步恢复；账号库文件为
       授权目录下 `biliview_accounts.json`（人类可读 JSON：全部账号 uid/username/avatar/AuthData
@@ -43,12 +47,13 @@
          风控熔断时「弹幕连接失败（风控）」提示切后台再回来仍在（本次回修项，待真机确认）；
       ⑤ Activity 配置重建：弹幕引擎随 VM 存活、重建后弹幕继续滚动（8bcffb2 修复项，
          AkDanmakuPlayer 直播侧 releaseOnDispose=false，释放归 onCleared，待真机确认）
-- [ ] 直播推荐个性化实机观察：推荐 tab 已改走网页首页同款 `index/getList`（无 parent_area_id，
-      带 SESSDATA/buvid3 Cookie，匿名约 5 条泛推荐，登录态预期个性化——服务器行为离线不可验，
-      接入后实机 `adb logcat -s LiveAPI` 观察）；空列表/异常保守降级回 getMoreRecList，
-      首页接口无分页 hasMore=false。若实机确认个性化未生效再调研其它端点。
       （2026-10-26 分区报错+localhost 故障已修复：449b502，K2 内联丢参+丢 host，实机 r54
       全分区 code=0 可播放；弹幕实机受风控阻断属已知限制，用户接受。）
+- [ ] 直播推荐个性化实机观察：推荐 tab 已改走网页首页同款 `index/getList`（无 parent_area_id，
+      带 SESSDATA/buvid3 Cookie，匿名约 10 条泛推荐（recommend_room_list 5 条 + room_list
+      模块 id=3「推荐直播」合并去重，零额外请求），登录态预期个性化——服务器行为离线不可验，
+      接入后实机 `adb logcat -s LiveAPI` 观察）；空列表/异常保守降级回 getMoreRecList
+      （-352 风控不降级直接上抛），首页接口无分页 hasMore=false。若实机确认个性化未生效再调研其它端点。
 
 ## 代码清理（无用功能移除）
 
