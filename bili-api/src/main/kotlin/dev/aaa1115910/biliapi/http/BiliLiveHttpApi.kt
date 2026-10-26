@@ -108,17 +108,26 @@ object BiliLiveHttpApi {
      * 获取直播间[roomId]的弹幕连接地址等信息，例如 token
      */
     suspend fun getLiveDanmuInfo(roomId: Int): BiliResponse<DanmuInfoData> =
-        client.get("/xlive/web-room/v1/index/getDanmuInfo") {
+        loggedGet<DanmuInfoData>(
+            endpoint = "/xlive/web-room/v1/index/getDanmuInfo",
+            params = "id=$roomId"
+        ) {
             parameter("id", roomId)
-        }.body()
+        }
 
     /**
      * 获取直播间[roomId]的信息
+     *
+     * 注意：仓库内主链路已用下方 v2 重载（含 `playurl_info`），本 v1 仅被
+     * `BiliLiveHttpApiTest` 的手工联测调用，保留并同样走 loggedGet。
      */
     suspend fun getLiveRoomPlayInfo(roomId: Int): BiliResponse<RoomPlayInfoData> =
-        client.get("/xlive/web-room/v1/index/getRoomPlayInfo") {
+        loggedGet<RoomPlayInfoData>(
+            endpoint = "/xlive/web-room/v1/index/getRoomPlayInfo",
+            params = "room_id=$roomId"
+        ) {
             parameter("room_id", roomId)
-        }.body()
+        }
 
     /**
      * 获取直播间[roomId]的信息，包含 `playurl_info` 里的直播流地址
@@ -271,14 +280,20 @@ object BiliLiveHttpApi {
      * 该接口的 `data` 直接是父分区数组。
      */
     suspend fun getLiveAreaList(): BiliResponse<List<LiveParentAreaData>> =
-        client.get("/room/v1/Area/getList").body()
+        loggedGet<List<LiveParentAreaData>>(
+            endpoint = "/room/v1/Area/getList",
+            params = "all"
+        ) {}
 
     /**
      * 获取直播间[roomId]的历史弹幕
      */
     suspend fun getLiveDanmuHistory(roomId: Int): BiliResponse<HistoryDanmaku> =
-        client.get("/xlive/web-room/v1/dM/gethistory") {
+        loggedGet<HistoryDanmaku>(
+            endpoint = "/xlive/web-room/v1/dM/gethistory",
+            params = "roomid=$roomId"
+        ) {
             parameter("roomid", roomId)
-        }.body()
+        }
 
 }
