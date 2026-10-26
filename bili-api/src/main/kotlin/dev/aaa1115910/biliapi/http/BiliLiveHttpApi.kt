@@ -16,9 +16,11 @@ import io.ktor.client.engine.okhttp.OkHttp
 import io.ktor.client.plugins.compression.ContentEncoding
 import io.ktor.client.plugins.contentnegotiation.ContentNegotiation
 import io.ktor.client.plugins.defaultRequest
+import io.ktor.client.request.HttpRequestBuilder
 import io.ktor.client.request.get
 import io.ktor.client.request.header
 import io.ktor.client.request.parameter
+import io.ktor.client.statement.HttpResponse
 import io.ktor.http.URLProtocol
 import io.ktor.serialization.kotlinx.json.json
 import kotlinx.serialization.json.Json
@@ -28,12 +30,17 @@ object BiliLiveHttpApi {
     private lateinit var client: HttpClient
     private val logger = KotlinLogging.logger { }
 
+    /**
+     * 直播接口结构化诊断日志：统一前缀 `LiveAPI`，logcat / LogCatcherUtil 导出文件里
+     * 都能 `grep LiveAPI`。记录 端点、关键参数、HTTP 状态、业务 code/message、异常。
+     */
+    private val liveApiLogger = KotlinLogging.logger("LiveAPI")
+
     init {
         createClient()
     }
 
-    private fun createClient() {
-        client = HttpClient(OkHttp) {
+    private fun createClient() {        client = HttpClient(OkHttp) {
             BiliUserAgent()
             install(ContentNegotiation) {
                 json(Json {
@@ -53,6 +60,43 @@ object BiliLiveHttpApi {
                 }
             }
         }
+    }
+
+    /**
+     * 带 `LiveAPI` 结构化日志的 GET：请求异常 / 解析异常 / 业务 code≠0 全部记录后再抛出/返回，
+     * 不改变任何既有行为（-352 等仍由 `getResponseData()` 转异常）。
+     */
+    private suspend inline fun <reified T> loggedGet(
+        endpoint: String,
+        params: String,
+        crossinline build: HttpRequestBuilder.() -> Unit
+    ): BiliResponse<T> {
+        val response: HttpResponse = try {
+            client.get(endpoint) { build() }
+        } catch (t: Throwable) {
+            liveApiLogger.warn(t) {
+                "LiveAPI http failed: endpoint=$endpoint params=[$params] error=${t.javaClass.name}: ${t.message}"
+            }
+            throw t
+        }
+        val body: BiliResponse<T> = try {
+            response.body()
+        } catch (t: Throwable) {
+            liveApiLogger.warn(t) {
+                "LiveAPI parse failed: endpoint=$endpoint params=[$params] http=${response.status.value} error=${t.javaClass.name}: ${t.message}"
+            }
+            throw t
+        }
+        if (body.code == 0) {
+            liveApiLogger.info {
+                "LiveAPI ok: endpoint=$endpoint params=[$params] http=${response.status.value} code=0 message=${body.message}"
+            }
+        } else {
+            liveApiLogger.warn {
+                "LiveAPI biz error: endpoint=$endpoint params=[$params] http=${response.status.value} code=${body.code} message=${body.message} dataNull=${body.data == null}"
+            }
+        }
+        return body
     }
 
     /**
@@ -94,9 +138,11 @@ object BiliLiveHttpApi {
         platform: String = "web",
         ptype: Int = 8,
         buvid3: String? = null
-    ): BiliResponse<RoomPlayInfoData> =
-        client.get("/xlive/web-room/v2/index/getRoomPlayInfo") {
-            parameter("room_id", roomId)
+    ): BiliResponse<RoomPlayInfoData> = loggedGet<RoomPlayInfoData>(
+        endpoint = "/xlive/web-room/v2/index/getRoomPlayInfo",
+        params = "room_id=$roomId, qn=$qn, protocol=$protocol, format=$format, codec=$codec, buvid3=${!buvid3.isNullOrBlank()}"
+    ) {
+        parameter("room_id", roomId)
             parameter("protocol", protocol)
             parameter("format", format)
             parameter("codec", codec)
@@ -104,7 +150,7 @@ object BiliLiveHttpApi {
             parameter("platform", platform)
             parameter("ptype", ptype)
             if (!buvid3.isNullOrBlank()) header("Cookie", "buvid3=$buvid3;")
-        }.body()
+        }
 
     /**
      * 获取推荐/热门直播列表（网页端直播首页的「推荐直播」）
@@ -115,11 +161,13 @@ object BiliLiveHttpApi {
     suspend fun getLiveRecommendList(
         platform: String = "web",
         buvid3: String? = null
-    ): BiliResponse<LiveRecommendListData> =
-        client.get("/xlive/web-interface/v1/webMain/getMoreRecList") {
-            parameter("platform", platform)
+    ): BiliResponse<LiveRecommendListData> = loggedGet<LiveRecommendListData>(
+        endpoint = "/xlive/web-interface/v1/webMain/getMoreRecList",
+        params = "platform=$platform, buvid3=${!buvid3.isNullOrBlank()}"
+    ) {
+        parameter("platform", platform)
             if (!buvid3.isNullOrBlank()) header("Cookie", "buvid3=$buvid3;")
-        }.body()
+        }
 
     /**
      * 获取直播频道页（按主分区聚合的模块化房间列表）
@@ -136,14 +184,16 @@ object BiliLiveHttpApi {
         page: Int = 1,
         platform: String = "web",
         buvid3: String? = null
-    ): BiliResponse<LiveIndexListData> =
-        client.get("/xlive/web-interface/v1/index/getList") {
-            parameter("platform", platform)
+    ): BiliResponse<LiveIndexListData> = loggedGet<LiveIndexListData>(
+        endpoint = "/xlive/web-interface/v1/index/getList",
+        params = "parent_area_id=$parentAreaId, area_id=$areaId, page=$page, platform=$platform, buvid3=${!buvid3.isNullOrBlank()}"
+    ) {
+        parameter("platform", platform)
             parameter("parent_area_id", parentAreaId)
             parameter("page", page)
             if (areaId > 0) parameter("area_id", areaId)
             if (!buvid3.isNullOrBlank()) header("Cookie", "buvid3=$buvid3;")
-        }.body()
+        }
 
     /**
      * 按分区获取平铺的直播列表（参考社区文档 `second/getList` 语义）
@@ -161,16 +211,18 @@ object BiliLiveHttpApi {
         sortType: String = "online",
         platform: String = "web",
         buvid3: String? = null
-    ): BiliResponse<LiveSecondListData> =
-        client.get("/xlive/web-interface/v1/second/getList") {
-            parameter("platform", platform)
+    ): BiliResponse<LiveSecondListData> = loggedGet<LiveSecondListData>(
+        endpoint = "/xlive/web-interface/v1/second/getList",
+        params = "parent_area_id=$parentAreaId, area_id=$areaId, page=$page, page_size=$pageSize, sort_type=$sortType, platform=$platform, buvid3=${!buvid3.isNullOrBlank()}"
+    ) {
+        parameter("platform", platform)
             parameter("parent_area_id", parentAreaId)
             parameter("area_id", areaId)
             parameter("sort_type", sortType)
             parameter("page", page)
             parameter("page_size", pageSize)
             if (!buvid3.isNullOrBlank()) header("Cookie", "buvid3=$buvid3;")
-        }.body()
+        }
 
     /**
      * 获取直播分区字典（父分区 + 二级分区）
