@@ -84,6 +84,10 @@
       且与 configuration cache 不兼容；升 Gradle 10 或启用配置缓存前需升 versions 插件（候选 0.66.0，本次未升）。
       后续升级项：Kotlin 2.4（需 classpath 覆盖 KGP 才能抬内置 Kotlin 版本）、AGP 9.3 最新 patch；
       暂不启用 configuration cache
+- [ ] BiliLiveHttpApi 相对路径调用统一迁 loggedGet：`getLiveDanmuInfo` / `getLiveRoomPlayInfo`(v1) /
+      `getLiveAreaList` / `getLiveDanmuHistory` 仍走相对路径 `client.get`（实机可用、非 inline 路径，
+      不受 449b502 bug 影响），但 defaultRequest host 合并失效机理未彻底查清，属潜在同类风险；
+      迁移后顺带获得 LiveAPI 结构化日志（opus 2026-10-26 评审建议，独立小提交）。
 - [ ] 上游同步策略：与 aaa1115910/bv@develop 的更新如何跟进（本仓库历史已重新初始化，
       无法直接 merge，需 vendor 重导入或 patch 流程）
 
