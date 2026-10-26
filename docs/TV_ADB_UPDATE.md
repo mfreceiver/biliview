@@ -49,3 +49,4 @@ adb -s $IP:5555 shell "pm enable com.android.packageinstaller"
 ## 实测记录
 
 - 2026-10-26：biliview 0.2.1(versionCode 19) → 0.3.1(51) 覆盖安装成功，数据保留。
+- 2026-10-27：biliview 0.3.1(54) → 0.3.3(66) 覆盖安装成功，数据保留。

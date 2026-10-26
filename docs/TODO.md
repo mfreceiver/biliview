@@ -23,8 +23,8 @@
 
 ## 功能缺口
 
-- [ ] 安装 v0.3.3 到电视并按「直播推荐个性化实机观察」条目实机观察
-      （192.168.3.32:5555，TCL 三连安装法见 docs/TV_ADB_UPDATE.md）。
+- [ ] 电视实机观察（v0.3.3 / versionCode 66 已于 2026-10-27 覆盖安装到电视，数据保留）：
+      按「直播推荐个性化实机观察」条目观察（192.168.3.32:5555，TCL 三连安装法见 docs/TV_ADB_UPDATE.md）。
 
 - [ ] 公共目录账号库自动加载/切换真机验证（2026-10-26 已实现：`AccountBackupManager` +
       `UserRepository.syncAccountBackup/loadAccountBackup` + BVApp 冷启动异步恢复；账号库文件为
