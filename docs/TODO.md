@@ -43,6 +43,17 @@
          风控熔断时「弹幕连接失败（风控）」提示切后台再回来仍在（本次回修项，待真机确认）；
       ⑤ Activity 配置重建：弹幕引擎随 VM 存活、重建后弹幕继续滚动（8bcffb2 修复项，
          AkDanmakuPlayer 直播侧 releaseOnDispose=false，释放归 onCleared，待真机确认）
+- [ ] 直播推荐内容与分区报错待实机诊断（2026-10-26 用户报告：①推荐 tab 内容与网页版/手机端不一致；
+      ②网游/手游/娱乐/电台/虚拟主播分区 tab 全部报错）。开发机 curl 实测两相关端点均正常：
+      `index/getList?parent_area_id=2&page=1` code=0（参数/解析模型与响应核对无误），
+      `webMain/getMoreRecList` code=0；分区报错最可能是实机网络侧风控（-352/412）或
+      Cookie/buvid3 缺失，待实机日志确认。已加 LiveAPI 双层结构化日志
+      （bili-api `BiliLiveHttpApi.loggedGet`：端点/参数/HTTP 状态/业务 code/message/异常；
+      app/shared `BiliLiveRepository`：android logcat 镜像 tag=LiveAPI），
+      实机 `adb logcat -s LiveAPI` 或设置-日志导出文件 grep LiveAPI 即可定位。
+      推荐不一致：getMoreRecList 属「更多推荐」分页端点（12 条/页），与网页首页首屏不同属预期；
+      webMain/getList 实测无 platform 参数返回 -400，带 platform=web 的 room_list 为空，
+      未见可直接取首页首屏的参数，留 TODO 不改行为。
 
 ## 代码清理（无用功能移除）
 
