@@ -175,6 +175,24 @@ class UserRepository(
         }
     }
 
+    /**
+     * 导出当前登录账号凭证为 AuthData JSON。
+     * 优先取 Room 用户表中的 auth（与登录时保存一致），否则回退 Prefs。
+     * 未登录时返回 null。
+     */
+    suspend fun exportAccount(): String? {
+        if (!Prefs.isLogin) return null
+        return db.userDao().findUserByUid(uid)?.auth ?: AuthData.fromPrefs().toJson()
+    }
+
+    /**
+     * 从 AuthData JSON 导入账号，走与登录成功相同的保存路径（写 Room + Prefs 并刷新登录态）。
+     * JSON 非法时抛出 [kotlinx.serialization.SerializationException]。
+     */
+    suspend fun importAccount(json: String) {
+        addUser(AuthData.fromJson(json))
+    }
+
     suspend fun findUserByUid(uid: Long): UserDB? {
         return db.userDao().findUserByUid(uid)
     }

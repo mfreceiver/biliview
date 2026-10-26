@@ -150,6 +150,15 @@
     <string name="season_feature_film">正片</string>
     <string name="season_no_feature_film">还没有正片</string>
 
+    <string name="settings_account_export_title">导出账号到文件</string>
+    <string name="settings_account_export_text">明文保存，含登录凭证，勿分享该文件</string>
+    <string name="settings_account_import_title">从文件导入账号</string>
+    <string name="settings_account_import_text">从先前导出的 JSON 文件恢复登录</string>
+    <string name="account_export_success">导出成功</string>
+    <string name="account_export_failed">导出失败：%1$s</string>
+    <string name="account_export_not_login">当前未登录，无法导出</string>
+    <string name="account_import_success">导入成功，已恢复登录</string>
+    <string name="account_import_failed">导入失败：%1$s</string>
     <string name="settings_crash_test_text">点一下崩一下，崩溃不花一份钱</string>
     <string name="settings_crash_test_title">崩溃测试</string>
     <string name="settings_create_logs_text">查看最近的崩溃日志，也可以手动保存日志</string>
