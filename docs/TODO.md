@@ -23,20 +23,14 @@
 
 ## 功能缺口
 
-- [ ] 替换发版 v0.3.2（2026-10-26 深夜进行中）：用户要求完成 opus 建议（BiliLiveHttpApi 相对路径
-      调用统一迁 loggedGet）后重新发版，版本号保持 0.3.2、替换 Gitea 上已上传的文件。
-      步骤：① glm 迁移 commit（进行中，会话重启后如未完成需重派：getLiveDanmuInfo /
-      getLiveRoomPlayInfo(v1，无调用方可删) / getLiveAreaList / getLiveDanmuHistory 四方法迁
-      loggedGet，遵守 449b502 纪律 build lambda 直传+绝对 URL）→ ② 核验 diff + 构建绿 →
-      ③ push → ④ 删除远端旧 tag v0.3.2.r60.dce3dde 及其 Gitea release（git push --delete +
-      Gitea API http://192.168.3.252:11330，仓库 mfreceiver/biliview）→ ⑤
-      GRADLE_OPTS="-Dorg.gradle.parallel=false -Dorg.gradle.workers.max=2"
-      ./scripts/release_build.sh --publish（新 tag r 号随提交数自然增大，版本名仍 0.3.2）。
-      完成后本条移除。
+- [ ] 发版 v0.3.3（2026-10-27 进行中）：loggedGet 迁移（e275009）+ UGC 死代码清理（dc3bb80）+
+      AGP 9.3.3/Kotlin 2.4.21 升级（3efcc7d）经审阅后发 patch 版 0.3.3（用户指示改为 patch 版本递增，
+      取代原「替换发版 v0.3.2」方案，旧 tag v0.3.2.r60.dce3dde 及 Gitea release 保留不删）。
+      步骤：push → GRADLE_OPTS="-Dorg.gradle.parallel=false -Dorg.gradle.workers.max=2"
+      ./scripts/release_build.sh --publish。完成后本条移除。
 
-- [ ] 安装 v0.3.2 到电视并按「直播推荐个性化实机观察」条目实机观察
+- [ ] 安装 v0.3.3 到电视并按「直播推荐个性化实机观察」条目实机观察
       （192.168.3.32:5555，TCL 三连安装法见 docs/TV_ADB_UPDATE.md）。
-      用户指示本次发版后不实机安装，安装留待后续（替换发版完成后安装最新 0.3.2 产物）。
 
 - [ ] 公共目录账号库自动加载/切换真机验证（2026-10-26 已实现：`AccountBackupManager` +
       `UserRepository.syncAccountBackup/loadAccountBackup` + BVApp 冷启动异步恢复；账号库文件为
@@ -68,13 +62,11 @@
 
 ## 代码清理（无用功能移除）
 
-- [ ] 剩余需人工判断的死代码残迹（主体已清，见 git 历史 790accf/c8c77ab）：
-      ① `app/mobile/.../component/player/VideoPlayerPages.kt:134-138` 注释掉的 `VideoPlayerUgcSectionsFilter(...)`
-      调用——受此影响同文件 `:184 private fun VideoPlayerUgcSectionsFilter` 与 `:203 VideoPlayerUgcSectionsFilterChip`
-      全仓无调用方（UGC 分节筛选 UI 未接线）。是「重新接回筛选 UI」还是「连定义一起删」属功能取舍，需人工定；
-      ② `app/mobile/.../component/reply/CommentItem.kt:115-127` 注释掉的点赞按钮块（`//TODO like comment`，
+- [ ] 剩余需人工判断的死代码残迹（主体已清，见 git 历史 790accf/c8c77ab；2026-10-27 dc3bb80
+      已删 VideoPlayerPages 的 UGC 分节筛选死代码——注释块、Filter 与 Chip 定义）：
+      ① `app/mobile/.../component/reply/CommentItem.kt:115-127` 注释掉的点赞按钮块（`//TODO like comment`，
       内含 `*//*TODO*//*` 嵌套注释 hack），上游未实现评论点赞，保留待定；
-      ③ `//TODO("Not yet implemented")` IDE 脚手架残迹：`app/shared/.../component/BvPlayerPreview.kt` ×9、
+      ② `//TODO("Not yet implemented")` IDE 脚手架残迹：`app/shared/.../component/BvPlayerPreview.kt` ×9、
       `player/tv/.../BvPlayer.kt` onIdle 内 1 处（语义上仍是「未实现」标记，保留）。
 
 ## 发版与工程化
