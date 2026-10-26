@@ -23,11 +23,17 @@
 
 ## 功能缺口
 
-- [ ] 账号凭证导出/导入真机验证（2026-10-26 已实现：`UserRepository.exportAccount/importAccount`
-      + TV 设置-其他两入口，SAF application/json，文件名 `biliview_account.json`；明文 JSON 含
-      SESSDATA/access_token）：
-      ① 导出→卸载重装→导入，确认 isLogin/uid/token 全部恢复、用户名头像正常刷新；
-      ② TV 遥控器焦点在「导出账号到文件」「从文件导入账号」两项与系统文件选择器中可用。
+- [ ] 公共目录账号库自动加载/切换真机验证（2026-10-26 已实现：`AccountBackupManager` +
+      `UserRepository.syncAccountBackup/loadAccountBackup` + BVApp 冷启动异步恢复；账号库文件为
+      授权目录下 `biliview_accounts.json`（人类可读 JSON：全部账号 uid/username/avatar/AuthData
+      + lastUid）；登录/切换/退出后自动同步，设置-其他「账号备份目录」(OpenDocumentTree +
+      takePersistableUriPermission) 与「立即同步账号」入口；旧版单账号导出/导入入口已移除）：
+      ① 授权目录→登录/切换账号→确认文件生成且内容含全部账号与 lastUid；
+      ② 卸载重装→重新指一次目录（Android 卸载会清 persisted URI 权限）→冷启动自动恢复上次账号；
+      ③ 未授权目录时冷启动静默跳过不报错；进入账号切换页未授权时弹提示可跳设置；
+         同步前先读旧文件按 uid 合并（本地∪文件），重装→未授权登录新账号→再授权→
+         「立即同步」后文件应含新旧全部账号；「立即同步账号」手动同步成功提示；
+      ④ TV 遥控器焦点在「账号备份目录」「立即同步账号」与系统目录选择器中可用。
 
 - [ ] 直播真机验证（入口 / 频道页 / 播放页 / 弹幕已落地，2026-10-25）：
       ① 弹幕协议字段校准：`DANMU_MSG` 的 color / uname / uid 实机抽样核对，brotli 分片拼接边界；

@@ -46,58 +46,23 @@ fun OtherSetting(
     var showFps by remember { mutableStateOf(Prefs.showFps) }
     var enableFfmpegAudioRenderer by remember { mutableStateOf(Prefs.enableFfmpegAudioRenderer) }
 
-    val exportLauncher = rememberLauncherForActivityResult(
-        ActivityResultContracts.CreateDocument("application/json")
-    ) { uri ->
-        if (uri == null) return@rememberLauncherForActivityResult
-        scope.launch {
-            val json = userRepository.exportAccount()
-            if (json == null) {
-                Toast.makeText(
-                    context, R.string.account_export_not_login, Toast.LENGTH_SHORT
-                ).show()
-                return@launch
-            }
-            runCatching {
-                context.contentResolver.openOutputStream(uri)?.use { output ->
-                    output.write(json.toByteArray())
-                } ?: error("Can not open output stream")
-            }.onSuccess {
-                Toast.makeText(
-                    context, R.string.account_export_success, Toast.LENGTH_SHORT
-                ).show()
-            }.onFailure {
-                Toast.makeText(
-                    context,
-                    context.getString(R.string.account_export_failed, it.message),
-                    Toast.LENGTH_SHORT
-                ).show()
-            }
-        }
+    var accountBackupDirSet by remember {
+        mutableStateOf(Prefs.accountBackupDir.isNotBlank())
     }
 
-    val importLauncher = rememberLauncherForActivityResult(
-        ActivityResultContracts.OpenDocument()
+    val backupDirLauncher = rememberLauncherForActivityResult(
+        ActivityResultContracts.OpenDocumentTree()
     ) { uri ->
         if (uri == null) return@rememberLauncherForActivityResult
-        scope.launch {
-            runCatching {
-                val json = context.contentResolver.openInputStream(uri)?.use { input ->
-                    input.bufferedReader().readText()
-                } ?: error("Can not open input stream")
-                userRepository.importAccount(json)
-            }.onSuccess {
-                Toast.makeText(
-                    context, R.string.account_import_success, Toast.LENGTH_SHORT
-                ).show()
-            }.onFailure {
-                Toast.makeText(
-                    context,
-                    context.getString(R.string.account_import_failed, it.message),
-                    Toast.LENGTH_SHORT
-                ).show()
-            }
+        runCatching {
+            context.contentResolver.takePersistableUriPermission(
+                uri,
+                Intent.FLAG_GRANT_READ_URI_PERMISSION or Intent.FLAG_GRANT_WRITE_URI_PERMISSION
+            )
         }
+        Prefs.accountBackupDir = uri.toString()
+        accountBackupDirSet = true
+        Toast.makeText(context, R.string.account_backup_success, Toast.LENGTH_SHORT).show()
     }
 
     Column(
@@ -118,6 +83,17 @@ fun OtherSetting(
             verticalArrangement = Arrangement.spacedBy(12.dp)
         ) {
             item {
+                SettingListItem(
+                    title = stringResource(R.string.settings_account_backup_dir_title),
+                    supportText = if (accountBackupDirSet) {
+                        stringResource(R.string.settings_account_backup_dir_text)
+                    } else {
+                        stringResource(R.string.settings_account_backup_dir_set)
+                    },
+                    onClick = { backupDirLauncher.launch(null) }
+                )
+            }
+            item {
                 SettingSwitchListItem(
                     title = stringResource(R.string.settings_other_fps_title),
                     supportText = stringResource(R.string.settings_other_fps_text),
@@ -137,19 +113,33 @@ fun OtherSetting(
                     }
                 )
             }
-            item {
-                SettingListItem(
-                    title = stringResource(R.string.settings_account_export_title),
-                    supportText = stringResource(R.string.settings_account_export_text),
-                    onClick = { exportLauncher.launch("biliview_account.json") }
-                )
-            }
-            item {
-                SettingListItem(
-                    title = stringResource(R.string.settings_account_import_title),
-                    supportText = stringResource(R.string.settings_account_import_text),
-                    onClick = { importLauncher.launch(arrayOf("application/json")) }
-                )
+            if (accountBackupDirSet) {
+                item {
+                    SettingListItem(
+                        title = stringResource(R.string.settings_account_backup_now_title),
+                        supportText = stringResource(R.string.settings_account_backup_now_text),
+                        onClick = {
+                            scope.launch {
+                                runCatching { userRepository.syncAccountBackup() }
+                                    .onSuccess {
+                                        Toast.makeText(
+                                            context,
+                                            R.string.account_backup_success,
+                                            Toast.LENGTH_SHORT
+                                        ).show()
+                                    }.onFailure {
+                                        Toast.makeText(
+                                            context,
+                                            context.getString(
+                                                R.string.account_backup_failed, it.message
+                                            ),
+                                            Toast.LENGTH_SHORT
+                                        ).show()
+                                    }
+                            }
+                        }
+                    )
+                }
             }
             if (BuildConfig.DEBUG) {
                 item {

@@ -150,15 +150,18 @@
     <string name="season_feature_film">正片</string>
     <string name="season_no_feature_film">还没有正片</string>
 
-    <string name="settings_account_export_title">导出账号到文件</string>
-    <string name="settings_account_export_text">明文保存，含登录凭证，勿分享该文件</string>
-    <string name="settings_account_import_title">从文件导入账号</string>
-    <string name="settings_account_import_text">从先前导出的 JSON 文件恢复登录</string>
-    <string name="account_export_success">导出成功</string>
-    <string name="account_export_failed">导出失败：%1$s</string>
-    <string name="account_export_not_login">当前未登录，无法导出</string>
-    <string name="account_import_success">导入成功，已恢复登录</string>
-    <string name="account_import_failed">导入失败：%1$s</string>
+    <string name="settings_account_backup_dir_title">账号备份目录</string>
+    <string name="settings_account_backup_dir_text">选择公共目录保存账号库文件（biliview_accounts.json，明文含登录凭证）。每次启动自动读取、登录/切换账号后自动写入。卸载重装后需重新选择一次目录</string>
+    <string name="settings_account_backup_dir_set">未设置，点击选择目录</string>
+    <string name="settings_account_backup_now_title">立即同步账号</string>
+    <string name="settings_account_backup_now_text">把本机全部账号立即写入账号库文件</string>
+    <string name="account_backup_success">账号库已同步</string>
+    <string name="account_backup_failed">同步失败：%1$s</string>
+    <string name="account_backup_not_enabled">请先设置账号备份目录</string>
+    <string name="account_backup_hint_title">未设置账号备份目录</string>
+    <string name="account_backup_hint_text">为避免卸载重装后账号丢失，请先在设置-其他中授权一个公共目录作为账号备份目录；否则新登录的账号不会写入账号库文件</string>
+    <string name="account_backup_hint_go">去设置</string>
+    <string name="account_backup_hint_later">暂不</string>
     <string name="settings_crash_test_text">点一下崩一下，崩溃不花一份钱</string>
     <string name="settings_crash_test_title">崩溃测试</string>
     <string name="settings_create_logs_text">查看最近的崩溃日志，也可以手动保存日志</string>

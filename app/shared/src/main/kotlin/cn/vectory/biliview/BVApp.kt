@@ -20,9 +20,14 @@ import cn.vectory.biliview.dao.AppDatabase
 import cn.vectory.biliview.entity.AuthData
 import cn.vectory.biliview.entity.db.UserDB
 import cn.vectory.biliview.network.HttpServer
+import cn.vectory.biliview.repository.UserRepository
 import cn.vectory.biliview.shared.BuildConfig
 import cn.vectory.biliview.util.LogCatcherUtil
 import cn.vectory.biliview.util.Prefs
+import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.SupervisorJob
+import kotlinx.coroutines.launch
 import kotlinx.coroutines.runBlocking
 import org.koin.android.ext.koin.androidContext
 import org.koin.android.ext.koin.androidLogger
@@ -41,6 +46,8 @@ class BVApp : Application() {
         lateinit var dataStoreManager: DataStoreManager
         lateinit var koinApplication: KoinApplication
         var instance: BVApp? = null
+        private val applicationScope =
+            CoroutineScope(SupervisorJob() + Dispatchers.IO)
 
         fun getAppDatabase(context: Context = this.context) = AppDatabase.getDatabase(context)
     }
@@ -62,6 +69,16 @@ class BVApp : Application() {
         instance = this
         updateMigration()
         HttpServer.startServer()
+        loadAccountBackup()
+    }
+
+    /** 冷启动异步从公共目录账号库恢复账号（不阻塞启动；未授权目录时静默跳过） */
+    private fun loadAccountBackup() {
+        applicationScope.launch {
+            val userRepository by koinApplication.koin.inject<UserRepository>()
+            runCatching { userRepository.loadAccountBackup() }
+                .onFailure { Log.w("BVApp", "Load account backup failed", it) }
+        }
     }
 
     private fun initApiConfig() {

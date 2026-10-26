@@ -67,7 +67,9 @@ import coil.compose.AsyncImage
 import cn.vectory.biliview.shared.R
 import cn.vectory.biliview.entity.BvScheme
 import cn.vectory.biliview.entity.db.UserDB
+import cn.vectory.biliview.repository.AccountBackupManager
 import cn.vectory.biliview.repository.UserRepository
+import cn.vectory.biliview.tv.activities.settings.SettingsActivity
 import cn.vectory.biliview.tv.activities.user.LoginActivity
 import cn.vectory.biliview.tv.activities.user.UserLockSettingsActivity
 import cn.vectory.biliview.tv.component.TvAlertDialog
@@ -96,6 +98,8 @@ fun UserSwitchScreen(
 
     var showUnlock by remember { mutableStateOf(false) }
     var unlockUser: UserDB? by remember { mutableStateOf(null) }
+    val accountBackupManager = getKoin().get<AccountBackupManager>()
+    var showBackupHint by remember { mutableStateOf(!accountBackupManager.enabled) }
 
     DisposableEffect(lifecycleOwner) {
         val observer = LifecycleEventObserver { _, event ->
@@ -152,6 +156,31 @@ fun UserSwitchScreen(
                     UserLockSettingsActivity.actionStart(context, uid)
                 }
             )
+
+            if (showBackupHint) {
+                TvAlertDialog(
+                    onDismissRequest = { showBackupHint = false },
+                    title = { Text(text = stringResource(R.string.account_backup_hint_title)) },
+                    text = {
+                        Text(text = stringResource(R.string.account_backup_hint_text))
+                    },
+                    confirmButton = {
+                        Button(onClick = {
+                            showBackupHint = false
+                            context.startActivity(
+                                Intent(context, SettingsActivity::class.java)
+                            )
+                        }) {
+                            Text(text = stringResource(R.string.account_backup_hint_go))
+                        }
+                    },
+                    dismissButton = {
+                        OutlinedButton(onClick = { showBackupHint = false }) {
+                            Text(text = stringResource(R.string.account_backup_hint_later))
+                        }
+                    }
+                )
+            }
 
             if (showUnlock) {
                 UnlockSwitchUserContent(

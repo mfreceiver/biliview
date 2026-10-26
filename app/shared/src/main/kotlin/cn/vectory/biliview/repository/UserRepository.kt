@@ -19,6 +19,7 @@ import java.util.Date
 @Single
 class UserRepository(
     private val authRepository: AuthRepository,
+    private val accountBackupManager: AccountBackupManager,
     private val db: AppDatabase = BVApp.getAppDatabase()
 ) {
     companion object {
@@ -94,6 +95,7 @@ class UserRepository(
             logger.info { "Not found user $uid in user db" }
         }
         clearAuth()
+        syncBackupSilently()
     }
 
     private fun clearAuth() {
@@ -124,6 +126,7 @@ class UserRepository(
         BVApp.instance?.initRepository()
         BVApp.instance?.initProxy()
         updateAvatar()
+        syncBackupSilently()
     }
 
     suspend fun addUser(authData: AuthData) {
@@ -145,6 +148,7 @@ class UserRepository(
         BVApp.instance?.initRepository()
         BVApp.instance?.initProxy()
         updateAvatar()
+        syncBackupSilently()
     }
 
     suspend fun updateAvatar() {
@@ -176,21 +180,41 @@ class UserRepository(
     }
 
     /**
-     * 导出当前登录账号凭证为 AuthData JSON。
-     * 优先取 Room 用户表中的 auth（与登录时保存一致），否则回退 Prefs。
-     * 未登录时返回 null。
+     * 立即把 Room user 表全部账号写入公共目录账号库文件（设置页「立即同步账号」入口）。
+     * 未授权目录或 IO 失败时抛出。
      */
-    suspend fun exportAccount(): String? {
-        if (!Prefs.isLogin) return null
-        return db.userDao().findUserByUid(uid)?.auth ?: AuthData.fromPrefs().toJson()
+    suspend fun syncAccountBackup() {
+        accountBackupManager.syncToBackup(Prefs.uid)
     }
 
     /**
-     * 从 AuthData JSON 导入账号，走与登录成功相同的保存路径（写 Room + Prefs 并刷新登录态）。
-     * JSON 非法时抛出 [kotlinx.serialization.SerializationException]。
+     * 冷启动自动恢复：读取公共目录账号库文件，把文件中的账号补进 Room
+     * （本地已有的以本地为准），若当前未登录则按 lastUid 恢复上次账号的登录态。
+     * 未授权目录/文件不存在/解析失败时静默跳过，不报错。
      */
-    suspend fun importAccount(json: String) {
-        addUser(AuthData.fromJson(json))
+    suspend fun loadAccountBackup() {
+        if (!accountBackupManager.enabled) return
+        runCatching {
+            val backup = accountBackupManager.readBackup() ?: return
+            logger.info {
+                "Account backup loaded: ${backup.accounts.size} accounts, lastUid=${backup.lastUid}"
+            }
+            val users = accountBackupManager.upsertToRoom(backup)
+            if (!Prefs.isLogin && backup.lastUid != 0L) {
+                users.find { it.uid == backup.lastUid }?.let { lastUser ->
+                    logger.info { "Restore last account ${lastUser.uid} from backup" }
+                    setUser(lastUser)
+                }
+            }
+        }.onFailure {
+            logger.warn { "Load account backup failed: ${it.stackTraceToString()}" }
+        }
+    }
+
+    /** 登录/切换/退出后同步账号库文件；失败只记日志，不影响主流程 */
+    private suspend fun syncBackupSilently() {
+        runCatching { syncAccountBackup() }
+            .onFailure { logger.warn { "Sync account backup failed: ${it.stackTraceToString()}" } }
     }
 
     suspend fun findUserByUid(uid: Long): UserDB? {

@@ -254,6 +254,11 @@ object Prefs {
         get() = runBlocking { dsm.getPreferenceFlow(PrefKeys.prefProxyGRPCServerRequest).first() }
         set(value) = runBlocking { dsm.editPreference(PrefKeys.prefProxyGRPCServerKey, value) }
 
+    /** 账号备份目录（SAF tree uri，字符串形式） */
+    var accountBackupDir: String
+        get() = runBlocking { dsm.getPreferenceFlow(PrefKeys.prefAccountBackupDirRequest).first() }
+        set(value) = runBlocking { dsm.editPreference(PrefKeys.prefAccountBackupDirKey, value) }
+
     var lastVersionCode: Int
         get() = runBlocking { dsm.getPreferenceFlow(PrefKeys.prefLastVersionCodeRequest).first() }
         set(value) = runBlocking { dsm.editPreference(PrefKeys.prefLastVersionCodeKey, value) }
@@ -338,6 +343,7 @@ object PrefKeys {
     val prefEnableProxyKey = booleanPreferencesKey("enable_proxy")
     val prefProxyHttpServerKey = stringPreferencesKey("proxy_http_server")
     val prefProxyGRPCServerKey = stringPreferencesKey("proxy_grpc_server")
+    val prefAccountBackupDirKey = stringPreferencesKey("account_backup_dir")
     val prefLastVersionCodeKey = intPreferencesKey("last_version_code")
     val prefShowedRemoteControllerPanelDemoKey = booleanPreferencesKey("showed_rcpd")
     val prefPreferOfficialCdn = booleanPreferencesKey("prefer_official_cdn")
@@ -390,6 +396,7 @@ object PrefKeys {
     val prefEnabelProxyRequest = PreferenceRequest(prefEnableProxyKey, false)
     val prefProxyHttpServerRequest = PreferenceRequest(prefProxyHttpServerKey, "")
     val prefProxyGRPCServerRequest = PreferenceRequest(prefProxyGRPCServerKey, "")
+    val prefAccountBackupDirRequest = PreferenceRequest(prefAccountBackupDirKey, "")
     val prefLastVersionCodeRequest = PreferenceRequest(prefLastVersionCodeKey, 0)
     val prefShowedRemoteControllerPanelDemoRequest =
         PreferenceRequest(prefShowedRemoteControllerPanelDemoKey, false)
