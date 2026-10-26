@@ -10,7 +10,9 @@ sideload（报 `INSTALL_FAILED_VERIFICATION_FAILURE`；`persist.tcl.installapk.*
 
 1. 开启 ADB：设置 → 系统/关于 → 系统信息页，遥控器依次按 **上、下、左、右**，
    弹出隐藏 ADB 开关，打开。
-2. 查电视 IP：设置 → 网络 → 网络详情。（本机已绑定静态 IP：192.168.3.32）
+2. 查电视 IP：设置 → 网络 → 网络详情。（本机已绑定静态 IP：192.168.3.32，2026-10-26
+   已续租生效；改绑后可用 `adb shell svc wifi disable && sleep 5 && adb shell svc wifi enable`
+   强制电视重新 DHCP——`cmd wifi disconnect` 被 TCL 定制权限拒绝，svc 可用）
 
 ## 每次更新（电脑上）
 
