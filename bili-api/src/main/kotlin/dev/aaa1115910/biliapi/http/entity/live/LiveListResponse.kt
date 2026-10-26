@@ -2,6 +2,7 @@ package dev.aaa1115910.biliapi.http.entity.live
 
 import kotlinx.serialization.SerialName
 import kotlinx.serialization.Serializable
+import kotlinx.serialization.json.JsonPrimitive
 
 /**
  * 直播间列表项
@@ -89,8 +90,9 @@ data class LiveIndexListData(
     @SerialName("recommend_room_list")
     val recommendRoomList: List<LiveRoomBrief> = emptyList(),
     val banner: List<LiveBannerData> = emptyList(),
+    // 实测该字段类型不稳定（见过字符串与 0），用 JsonPrimitive 兜底
     @SerialName("cover_source")
-    val coverSource: String = ""
+    val coverSource: JsonPrimitive = JsonPrimitive(""),
 )
 
 @Serializable

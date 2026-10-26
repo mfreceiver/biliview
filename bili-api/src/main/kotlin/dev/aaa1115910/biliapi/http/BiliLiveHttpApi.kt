@@ -21,6 +21,7 @@ import io.ktor.client.request.get
 import io.ktor.client.request.header
 import io.ktor.client.request.parameter
 import io.ktor.client.statement.HttpResponse
+import io.ktor.client.statement.request
 import io.ktor.http.URLProtocol
 import io.ktor.serialization.kotlinx.json.json
 import kotlinx.serialization.json.Json
@@ -40,7 +41,8 @@ object BiliLiveHttpApi {
         createClient()
     }
 
-    private fun createClient() {        client = HttpClient(OkHttp) {
+    private fun createClient() {
+        client = HttpClient(OkHttp) {
             BiliUserAgent()
             install(ContentNegotiation) {
                 json(Json {
@@ -69,10 +71,13 @@ object BiliLiveHttpApi {
     private suspend inline fun <reified T> loggedGet(
         endpoint: String,
         params: String,
-        crossinline build: HttpRequestBuilder.() -> Unit
+        build: HttpRequestBuilder.() -> Unit
     ): BiliResponse<T> {
         val response: HttpResponse = try {
-            client.get(endpoint) { build() }
+            // 直接传 build 而非 { build() } 包装：crossinline 包装在 K2 内联展开中被丢弃，
+            // 实测导致查询参数全部丢失（裸端点请求 → -400 请求错误）。
+            // 绝对 URL：inline 展开路径下 defaultRequest 的 host 合并未生效（实测回落 localhost:80）。
+            client.get("https://api.live.bilibili.com$endpoint", build)
         } catch (t: Throwable) {
             liveApiLogger.warn(t) {
                 "LiveAPI http failed: endpoint=$endpoint params=[$params] error=${t.javaClass.name}: ${t.message}"
