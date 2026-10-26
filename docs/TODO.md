@@ -23,6 +23,12 @@
 
 ## 功能缺口
 
+- [ ] 账号凭证导出/导入真机验证（2026-10-26 已实现：`UserRepository.exportAccount/importAccount`
+      + TV 设置-其他两入口，SAF application/json，文件名 `biliview_account.json`；明文 JSON 含
+      SESSDATA/access_token）：
+      ① 导出→卸载重装→导入，确认 isLogin/uid/token 全部恢复、用户名头像正常刷新；
+      ② TV 遥控器焦点在「导出账号到文件」「从文件导入账号」两项与系统文件选择器中可用。
+
 - [ ] 直播真机验证（入口 / 频道页 / 播放页 / 弹幕已落地，2026-10-25）：
       ① 弹幕协议字段校准：`DANMU_MSG` 的 color / uname / uid 实机抽样核对，brotli 分片拼接边界；
       ② FLV 实机稳定性：长时间播放、切后台回前台重连、弱网退避重连表现；
