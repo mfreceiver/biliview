@@ -23,12 +23,6 @@
 
 ## 功能缺口
 
-- [ ] 发版 v0.3.3（2026-10-27 进行中）：loggedGet 迁移（e275009）+ UGC 死代码清理（dc3bb80）+
-      AGP 9.3.3/Kotlin 2.4.21 升级（3efcc7d）经审阅后发 patch 版 0.3.3（用户指示改为 patch 版本递增，
-      取代原「替换发版 v0.3.2」方案，旧 tag v0.3.2.r60.dce3dde 及 Gitea release 保留不删）。
-      步骤：push → GRADLE_OPTS="-Dorg.gradle.parallel=false -Dorg.gradle.workers.max=2"
-      ./scripts/release_build.sh --publish。完成后本条移除。
-
 - [ ] 安装 v0.3.3 到电视并按「直播推荐个性化实机观察」条目实机观察
       （192.168.3.32:5555，TCL 三连安装法见 docs/TV_ADB_UPDATE.md）。
 
