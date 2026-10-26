@@ -110,6 +110,20 @@ class LiveRepository(
             .map { LiveRoom.fromBrief(it) }
 
     /**
+     * 首页个性化推荐直播列表（`index/getList` 无 parent_area_id 形态）
+     *
+     * 与 [getRecommendRooms]（getMoreRecList 分页端点）不同：这是网页直播首页首屏接口，
+     * 带 SESSDATA 预期个性化推荐（服务器行为）；无分页语义，`hasMore` 恒 false 由调用方处理。
+     */
+    suspend fun getHomeRecommendRooms(): List<LiveRoom> =
+        BiliLiveHttpApi.getLiveHomeList(
+            sessdata = authRepository.sessionData,
+            buvid3 = authRepository.buvid3
+        ).getResponseData()
+            .recommendRoomList
+            .map { LiveRoom.fromBrief(it) }
+
+    /**
      * 直播频道页（`index/getList`，按主分区模块化聚合）
      *
      * 这是当前唯一实测可用的「按分区」列表：`page` 有效，但没有 `has_more`，

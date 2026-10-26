@@ -43,8 +43,10 @@
          风控熔断时「弹幕连接失败（风控）」提示切后台再回来仍在（本次回修项，待真机确认）；
       ⑤ Activity 配置重建：弹幕引擎随 VM 存活、重建后弹幕继续滚动（8bcffb2 修复项，
          AkDanmakuPlayer 直播侧 releaseOnDispose=false，释放归 onCleared，待真机确认）
-- [ ] 直播推荐个性化：推荐 tab 现走匿名 `webMain/getMoreRecList`（12 条/页「更多推荐」），
-      与网页登录态个人推荐不同属端点限制；个性化需另调研带登录 Cookie 的推荐端点（未立项）。
+- [ ] 直播推荐个性化实机观察：推荐 tab 已改走网页首页同款 `index/getList`（无 parent_area_id，
+      带 SESSDATA/buvid3 Cookie，匿名约 5 条泛推荐，登录态预期个性化——服务器行为离线不可验，
+      接入后实机 `adb logcat -s LiveAPI` 观察）；空列表/异常保守降级回 getMoreRecList，
+      首页接口无分页 hasMore=false。若实机确认个性化未生效再调研其它端点。
       （2026-10-26 分区报错+localhost 故障已修复：449b502，K2 内联丢参+丢 host，实机 r54
       全分区 code=0 可播放；弹幕实机受风控阻断属已知限制，用户接受。）
 

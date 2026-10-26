@@ -16,10 +16,8 @@ private const val TAG = "LiveAPI"
  * [LIVE_RECOMMEND_AREA_ID] 时走“更多推荐”接口（xlive/web-interface/v1/webMain/getMoreRecList），
  * 遇到其他值走分区频道页接口（xlive/web-interface/v1/index/getList，parent_area_id = areaId）。
  *
- * TODO(实机诊断)：推荐内容与网页版不一致——getMoreRecList 是「更多推荐」分页端点（每页 12 条），
- * 与网页直播首页（webMain/getList 首屏，含模块化 room_list）天然不同；2026-10-26 实测
- * `webMain/getList` 无参时返回 -400，需 `platform=web`，且其 room_list 为空、recommend 仍 12 条，
- * 未见能直接取到首页首屏的参数。留待实机日志确认后决定是否换端点。
+ * TODO(实机诊断) 条目已完成：推荐 tab 已改走网页首页同款 `index/getList`（无 parent_area_id，
+ * 带 SESSDATA 个性化）；失败/空列表保守降级回 getMoreRecList。见 [BiliLiveRepository]。
  */
 const val LIVE_RECOMMEND_AREA_ID = 0
 
@@ -54,7 +52,8 @@ interface LiveRepository {
 /**
  * 直播列表的真实数据源，内部委托 bili-api 的 [BiliApiLiveRepository]。
  *
- * - [LIVE_RECOMMEND_AREA_ID]：走推荐接口（webMain/getMoreRecList），只有一页，`hasMore = false`
+ * - [LIVE_RECOMMEND_AREA_ID]：走首页推荐接口（index/getList 无 parent_area_id，带 SESSDATA 个性化），
+ *   空列表/异常降级 getMoreRecList，只有一页，`hasMore = false`
  * - 其他 areaId：走分区接口（index/getList，`parent_area_id = areaId`），
  *   `hasMore = rooms.isNotEmpty()`（该接口不返回 has_more）
  *
@@ -82,7 +81,7 @@ class BiliLiveRepository(
             // 与 bili-api 侧 BiliLiveHttpApi 的 LiveAPI 日志互补：这里保证 android logcat 必有记录
             // （不依赖 slf4j 绑定），含异常类名与消息，便于实机 `adb logcat -s LiveAPI` / 导出日志诊断。
             val endpoint = if (areaId == LIVE_RECOMMEND_AREA_ID) {
-                "webMain/getMoreRecList"
+                "index/getList(home)+getMoreRecList(fallback)"
             } else {
                 "index/getList?parent_area_id=$areaId&page=$page"
             }
@@ -96,9 +95,24 @@ class BiliLiveRepository(
         page: Int
     ): LiveListPage {
         if (areaId == LIVE_RECOMMEND_AREA_ID) {
-            val rooms = liveRepository.getRecommendRooms()
+            // 网页首页同款个性化推荐（index/getList 无 parent_area_id，带 SESSDATA）；
+            // 空列表/异常保守降级回 getMoreRecList，别让推荐 tab 白屏。
+            val rooms = try {
+                liveRepository.getHomeRecommendRooms()
+            } catch (t: Throwable) {
+                Log.w(TAG, "getHomeRecommendRooms failed, fallback to getMoreRecList: ${t.javaClass.name}: ${t.message}")
+                emptyList()
+            }
+            if (rooms.isNotEmpty()) {
+                return LiveListPage(
+                    items = rooms.map { it.toCardData() },
+                    // 首页接口无分页语义，焦点到底不触发 loadMore
+                    hasMore = false
+                )
+            }
+            val fallback = liveRepository.getRecommendRooms()
             return LiveListPage(
-                items = rooms.map { it.toCardData() },
+                items = fallback.map { it.toCardData() },
                 hasMore = false
             )
         }

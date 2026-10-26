@@ -175,6 +175,42 @@ object BiliLiveHttpApi {
         }
 
     /**
+     * 拼接首页推荐请求的 Cookie 头（纯函数，供离线单测）
+     *
+     * 两段均为空时返回 null（不发送 Cookie 头）。
+     */
+    internal fun buildHomeListCookie(
+        sessdata: String? = null,
+        buvid3: String? = null
+    ): String? {
+        val parts = buildList {
+            if (!sessdata.isNullOrBlank()) add("SESSDATA=$sessdata")
+            if (!buvid3.isNullOrBlank()) add("buvid3=$buvid3")
+        }
+        return parts.takeIf { it.isNotEmpty() }?.joinToString("; ")?.plus(";")
+    }
+
+    /**
+     * 获取网页直播首页首屏数据（`/xlive/web-interface/v1/index/getList`，无 parent_area_id）
+     *
+     * 网页版 live.bilibili.com 首页（Fenice home-old bundle）首屏即调本接口：
+     * 匿名时 `data.recommend_room_list` 为 5 条泛推荐；带 SESSDATA Cookie 预期个性化
+     * （服务器行为，接入后实机观察）。item 字段与 [LiveRoomBrief] 同构
+     * （`rec_status`/`show_callback` 等未建模字段由 ignoreUnknownKeys 忽略）。
+     */
+    suspend fun getLiveHomeList(
+        platform: String = "web",
+        sessdata: String? = null,
+        buvid3: String? = null
+    ): BiliResponse<LiveIndexListData> = loggedGet<LiveIndexListData>(
+        endpoint = "/xlive/web-interface/v1/index/getList",
+        params = "platform=$platform, sessdata=${!sessdata.isNullOrBlank()}, buvid3=${!buvid3.isNullOrBlank()}"
+    ) {
+        parameter("platform", platform)
+        buildHomeListCookie(sessdata, buvid3)?.let { header("Cookie", it) }
+    }
+
+    /**
      * 获取直播频道页（按主分区聚合的模块化房间列表）
      *
      * 端点 `/xlive/web-interface/v1/index/getList` 未被社区文档收录，字段按 2026-10-25 实际响应建模；
