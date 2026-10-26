@@ -26,10 +26,7 @@ import androidx.compose.foundation.text.InlineTextContent
 import androidx.compose.foundation.text.appendInlineContent
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.ChevronRight
-import androidx.compose.material.icons.filled.Done
 import androidx.compose.material3.ExperimentalMaterial3Api
-import androidx.compose.material3.FilterChip
-import androidx.compose.material3.FilterChipDefaults
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
@@ -131,11 +128,6 @@ fun VideoPlayerPages(
         } else if (ugcSeason != null) {
             // TODO ugc
             if (currentSection != null) {
-                //VideoPlayerUgcSectionsFilter(
-                //    sections = ugcSeason.sections,
-                //    currentSection = currentSection!!,
-                //    onSectionChange = { currentSection = it }
-                //)
                 VideoPlayerEpisodesRow(
                     episodes = currentSection!!.episodes,
                     onClickMore = { openBottomSheet = !openBottomSheet },
@@ -178,52 +170,6 @@ fun VideoPlayerPages(
             )
         }
     }
-}
-
-@Composable
-private fun VideoPlayerUgcSectionsFilter(
-    modifier: Modifier = Modifier,
-    sections: List<Section>,
-    currentSection: Section,
-    onSectionChange: (Section) -> Unit = {}
-) {
-    LazyRow {
-        items(sections) { section ->
-            VideoPlayerUgcSectionsFilterChip(
-                modifier = modifier,
-                section = section,
-                selected = section == currentSection,
-                onClick = { onSectionChange(section) }
-            )
-        }
-    }
-}
-
-@Composable
-fun VideoPlayerUgcSectionsFilterChip(
-    modifier: Modifier = Modifier,
-    section: Section,
-    selected: Boolean,
-    onClick: () -> Unit
-) {
-    FilterChip(
-        modifier = modifier,
-        onClick = onClick,
-        label = {
-            Text(
-                text = section.title,
-                style = MaterialTheme.typography.titleSmall
-            )
-        },
-        selected = selected,
-        leadingIcon = (@Composable {
-            Icon(
-                imageVector = Icons.Filled.Done,
-                contentDescription = null,
-                modifier = Modifier.size(FilterChipDefaults.IconSize)
-            )
-        }).takeIf { selected }
-    )
 }
 
 @Composable
