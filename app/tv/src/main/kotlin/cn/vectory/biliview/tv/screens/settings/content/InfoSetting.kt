@@ -111,7 +111,10 @@ fun InfoSetting(
             Text(text = stringResource(R.string.settings_info_system, Build.VERSION.RELEASE))
             Text(
                 text = stringResource(
-                    R.string.settings_info_screen, *screenInfo.toList().toTypedArray()
+                    // 显式逐位传参：spread 会让 reified T 推成 Number & Comparable<*> 交叉类型，
+                    // Kotlin 2.4 起 TYPE_INTERSECTION_AS_REIFIED 升级为编译错误。
+                    R.string.settings_info_screen,
+                    screenInfo.first, screenInfo.second, screenInfo.third
                 )
             )
             if (Build.VERSION.SDK_INT >= 31)

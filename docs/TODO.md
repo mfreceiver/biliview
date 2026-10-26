@@ -93,12 +93,11 @@
       （AGP 9.3.1→9.6.0-alpha01、Kotlin 2.2.10→2.5.0-Beta2、versions 0.52.0→0.66.0、Gradle 9.7.1→9.8.2 RC），
       Android 模块的库依赖不在报告中。已知限制：0.52.0 在任务执行期调用 Task.project，Gradle 10 将报错、
       且与 configuration cache 不兼容；升 Gradle 10 或启用配置缓存前需升 versions 插件（候选 0.66.0，本次未升）。
-      后续升级项：Kotlin 2.4（需 classpath 覆盖 KGP 才能抬内置 Kotlin 版本）、AGP 9.3 最新 patch；
+      后续升级项：暂无（Kotlin 2.4.21 与 AGP 9.3.3 已于 2026-10-27 完成并回归 assembleDebug/Release
+      + release_assert_apk.sh 全绿；Kotlin 抬法=根 build.gradle.kts buildscript classpath 覆盖 KGP，
+      catalog kotlin 与之同步，未动 R8/builtInKotlin 逃生口；迁移过程中 Kotlin 2.4 把
+      TYPE_INTERSECTION_AS_REIFIED 升级为编译错误，InfoSetting.kt 已改显式传参）；
       暂不启用 configuration cache
-- [ ] BiliLiveHttpApi 相对路径调用统一迁 loggedGet：`getLiveDanmuInfo` / `getLiveRoomPlayInfo`(v1) /
-      `getLiveAreaList` / `getLiveDanmuHistory` 仍走相对路径 `client.get`（实机可用、非 inline 路径，
-      不受 449b502 bug 影响），但 defaultRequest host 合并失效机理未彻底查清，属潜在同类风险；
-      迁移后顺带获得 LiveAPI 结构化日志（opus 2026-10-26 评审建议，独立小提交）。
 - [ ] 上游同步策略：与 aaa1115910/bv@develop 的更新如何跟进（本仓库历史已重新初始化，
       无法直接 merge，需 vendor 重导入或 patch 流程）
 

@@ -1,9 +1,11 @@
 [versions]
-agp = "9.3.1"
-# Kotlin 版本由 AGP 内置 Kotlin 决定（AGP 9.3.1 的 POM 依赖 kotlin-gradle-plugin:2.2.10），
-# 这里只用于 compose/serialization 编译器子插件与纯 JVM 模块的 kotlin.jvm，必须与内置版本一致。
-kotlin = "2.2.10"
-# KSP ≥2.3.10 才修了「AGP 内置 Kotlin 下的 R 类解析」(google/ksp#2857)。
+agp = "9.3.3"
+# Kotlin 版本由根 build.gradle.kts buildscript classpath 覆盖 KGP 决定（当前 2.4.21，
+# 高于 AGP 9.3.3 内置 Kotlin），这里只用于 compose/serialization 编译器子插件与纯 JVM
+# 模块的 kotlin.jvm，必须与覆盖后的版本一致。
+kotlin = "2.4.21"
+# KSP ≥2.3.10 才修了「AGP 内置 Kotlin 下的 R 类解析」(google/ksp#2857)；
+# 2.3.12 为最新发布版，KSP 自 2.3.0 起不再绑定 Kotlin 编译器插件版本，兼容 Kotlin 2.4。
 ksp = "2.3.12"
 protobuf = "0.10.0"
 versions = "0.52.0"
