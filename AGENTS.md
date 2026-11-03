@@ -46,6 +46,14 @@
 - 版本：`buildSrc` `AppConfiguration` 的 major/minor/patch，**核心固定三位**；修复（hotfix）也走 patch 位递增（如 0.2.1 → 0.2.2），不得另起第四位；`versionCode = git rev-list --count HEAD`（依赖提交计数，勿手工指定版本号）；产物命名 `BiliView_<versionCode>_<versionName>.<buildType>_<flavor>_<abi>.apk`。
 - release 签名：根目录 `signing.properties`（不入库，三键 storeFile/storePassword/keyAlias，keyAlias=release，keystore 与 mitv 同款）；缺该文件时产物 unsigned。发版只经 `scripts/release_build.sh`（版本唯一/单调、证书指纹钉定 fail-closed、APK/ 归档 + SHA256SUMS、Gitea 发布），**禁止手打 tag 发版**；ABI 集合同时硬编码于 `release_assert_apk.sh`，改动 ABI 须同步该脚本。
 
+## TV 实机安装（TCL 电视）
+
+- 目标设备：TCL 电视 `192.168.3.31:5555`（tcl_mt5879_cn，Android 11；与 mitv 项目同一台）。
+- TCL 国内版固件拦截 adb 安装第三方 APK，直接 `adb install` 会失败；须临时禁用
+  `com.android.packageinstaller` 后 `install -r`，完成后恢复（失败/中断也要恢复）。
+  一律走 `scripts/install_tv.sh <apk> [tv地址]`（已封装该流程，EXIT trap 保证恢复）。
+- 电视偶尔整机掉线（ping/ARP 全失败），非 adb 问题；待机唤醒/重启后可能需重开网络 ADB。
+
 ## 已移除项（勿以任何理由恢复）
 
 - 用户黑名单机制全链路（BlacklistUtil、blacklist.proto/raw、downloadBlacklist 任务、启动/登录强杀）。
