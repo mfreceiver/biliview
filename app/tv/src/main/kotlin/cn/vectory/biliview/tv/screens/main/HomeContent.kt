@@ -23,22 +23,30 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.focus.FocusRequester
 import androidx.compose.ui.focus.focusRequester
 import androidx.compose.ui.focus.onFocusChanged
+import androidx.compose.ui.input.key.Key
+import androidx.compose.ui.input.key.key
+import androidx.compose.ui.input.key.onPreviewKeyEvent
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.unit.dp
 import cn.vectory.biliview.tv.component.HomeTopNavItem
 import cn.vectory.biliview.tv.component.TopNav
 import cn.vectory.biliview.tv.screens.main.home.DynamicsScreen
+import cn.vectory.biliview.tv.screens.main.home.HistoryHomeScreen
 import cn.vectory.biliview.tv.screens.main.home.PopularScreen
 import cn.vectory.biliview.tv.screens.main.home.RecommendScreen
 import cn.vectory.biliview.util.fInfo
+import cn.vectory.biliview.util.isKeyDown
 import cn.vectory.biliview.util.requestFocus
 import cn.vectory.biliview.viewmodel.UserViewModel
 import cn.vectory.biliview.viewmodel.home.DynamicViewModel
 import cn.vectory.biliview.viewmodel.home.PopularViewModel
 import cn.vectory.biliview.viewmodel.home.RecommendViewModel
+import cn.vectory.biliview.viewmodel.user.HistoryViewModel
 import io.github.oshai.kotlinlogging.KotlinLogging
 import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.withContext
 import org.koin.androidx.compose.koinViewModel
 
 @Composable
@@ -48,7 +56,8 @@ fun HomeContent(
     recommendViewModel: RecommendViewModel = koinViewModel(),
     popularViewModel: PopularViewModel = koinViewModel(),
     dynamicViewModel: DynamicViewModel = koinViewModel(),
-    userViewModel: UserViewModel = koinViewModel()
+    userViewModel: UserViewModel = koinViewModel(),
+    historyViewModel: HistoryViewModel = koinViewModel()
 ) {
     val context = LocalContext.current
     val scope = rememberCoroutineScope()
@@ -57,6 +66,8 @@ fun HomeContent(
     val recommendState = rememberLazyListState()
     val popularState = rememberLazyListState()
     val dynamicState = rememberLazyListState()
+    val historyState = rememberLazyListState()
+    val historyAccount = historyViewModel.isLogin to historyViewModel.userId
 
     var selectedTab by remember { mutableStateOf(HomeTopNavItem.Recommend) }
     var focusOnContent by remember { mutableStateOf(false) }
@@ -68,11 +79,40 @@ fun HomeContent(
                     HomeTopNavItem.Recommend -> recommendState
                     HomeTopNavItem.Popular -> popularState
                     HomeTopNavItem.Dynamics -> dynamicState
+                    HomeTopNavItem.History -> historyState
                 }
             ) {
                 firstVisibleItemIndex == 0 && firstVisibleItemScrollOffset == 0
             }
         }
+    }
+
+    var recommendRefreshing by remember { mutableStateOf(false) }
+    val refreshRecommend: (Boolean) -> Unit = { fromContent ->
+        if (!recommendRefreshing && !recommendViewModel.loading) {
+            recommendRefreshing = true
+            scope.launch {
+                try {
+                    if (fromContent) {
+                        if (!runCatching { navFocusRequester.requestFocus() }.getOrDefault(false)) {
+                            delay(100)
+                            if (!runCatching { navFocusRequester.requestFocus() }.getOrDefault(false)) return@launch
+                        }
+                        recommendState.scrollToItem(0)
+                    }
+                    logger.fInfo { "clear recommend data" }
+                    recommendViewModel.clearData()
+                    logger.fInfo { "reload recommend data" }
+                    withContext(Dispatchers.IO) { recommendViewModel.loadMore() }
+                } finally {
+                    recommendRefreshing = false
+                }
+            }
+        }
+    }
+    val onMenuKey: (() -> Unit)? = when (selectedTab) {
+        HomeTopNavItem.Recommend -> { { refreshRecommend(true) } }
+        HomeTopNavItem.Popular, HomeTopNavItem.Dynamics, HomeTopNavItem.History -> null
     }
 
     //启动时刷新数据
@@ -102,6 +142,17 @@ fun HomeContent(
         }
     }
 
+    LaunchedEffect(selectedTab, historyAccount) {
+        historyViewModel.syncAccount()
+        if (selectedTab == HomeTopNavItem.History && historyAccount.first) {
+            if (!historyViewModel.hasLoaded && !historyViewModel.updating) {
+                historyViewModel.update()
+            }
+        } else {
+            historyViewModel.cancelUpdate()
+        }
+    }
+
     LaunchedEffect(hasFocus) {
         if (hasFocus) {
             navFocusRequester.requestFocus()
@@ -117,6 +168,7 @@ fun HomeContent(
                 HomeTopNavItem.Recommend -> recommendState.animateScrollToItem(0)
                 HomeTopNavItem.Popular -> popularState.animateScrollToItem(0)
                 HomeTopNavItem.Dynamics -> dynamicState.animateScrollToItem(0)
+                HomeTopNavItem.History -> historyState.animateScrollToItem(0)
             }
         }
     }
@@ -136,6 +188,7 @@ fun HomeContent(
                     when (nav) {
                         HomeTopNavItem.Recommend -> {}
                         HomeTopNavItem.Popular -> {}
+                        HomeTopNavItem.History -> {}
                         HomeTopNavItem.Dynamics -> {
                             if (!dynamicViewModel.loadingVideo && dynamicViewModel.isLogin && dynamicViewModel.dynamicVideoList.isEmpty()) {
                                 scope.launch(Dispatchers.IO) { dynamicViewModel.loadMoreVideo() }
@@ -145,12 +198,7 @@ fun HomeContent(
                 },
                 onClick = { nav ->
                     when (nav) {
-                        HomeTopNavItem.Recommend -> {
-                            logger.fInfo { "clear recommend data" }
-                            recommendViewModel.clearData()
-                            logger.fInfo { "reload recommend data" }
-                            scope.launch(Dispatchers.IO) { recommendViewModel.loadMore() }
-                        }
+                        HomeTopNavItem.Recommend -> refreshRecommend(false)
 
                         HomeTopNavItem.Popular -> {
                             logger.fInfo { "clear popular data" }
@@ -165,6 +213,12 @@ fun HomeContent(
                             logger.fInfo { "reload dynamic data" }
                             scope.launch(Dispatchers.IO) { dynamicViewModel.loadMoreVideo() }
                         }
+
+                        HomeTopNavItem.History -> {
+                            historyViewModel.clearData()
+                            scope.launch { historyState.scrollToItem(0) }
+                            if (historyViewModel.isLogin) historyViewModel.update()
+                        }
                     }
                 }
             )
@@ -174,6 +228,16 @@ fun HomeContent(
             modifier = Modifier
                 .padding(innerPadding)
                 .onFocusChanged { focusOnContent = it.hasFocus }
+                .onPreviewKeyEvent { event ->
+                    if (event.key == Key.Menu && onMenuKey != null) {
+                        if (event.isKeyDown() && event.nativeKeyEvent.repeatCount == 0) {
+                            onMenuKey()
+                        }
+                        true
+                    } else {
+                        false
+                    }
+                }
         ) {
             AnimatedContent(
                 targetState = selectedTab,
@@ -193,6 +257,12 @@ fun HomeContent(
                     HomeTopNavItem.Recommend -> RecommendScreen(lazyListState = recommendState)
                     HomeTopNavItem.Popular -> PopularScreen(lazyListState = popularState)
                     HomeTopNavItem.Dynamics -> DynamicsScreen(lazyListState = dynamicState)
+                    HomeTopNavItem.History -> HistoryHomeScreen(
+                        lazyListState = historyState,
+                        historyViewModel = historyViewModel,
+                        isActive = selectedTab == HomeTopNavItem.History,
+                        isLogin = historyAccount.first && historyViewModel.isCurrentAccount
+                    )
                 }
             }
         }

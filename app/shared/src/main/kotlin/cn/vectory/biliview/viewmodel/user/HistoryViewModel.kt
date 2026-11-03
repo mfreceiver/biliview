@@ -15,13 +15,15 @@ import cn.vectory.biliview.shared.R
 import cn.vectory.biliview.entity.carddata.VideoCardData
 import cn.vectory.biliview.repository.UserRepository
 import cn.vectory.biliview.util.Prefs
-import cn.vectory.biliview.util.addWithMainContext
 import cn.vectory.biliview.util.fInfo
 import cn.vectory.biliview.util.fWarn
 import cn.vectory.biliview.util.formatHourMinSec
 import cn.vectory.biliview.util.toast
 import io.github.oshai.kotlinlogging.KotlinLogging
+import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.Job
+import kotlinx.coroutines.NonCancellable
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 import org.koin.android.annotation.KoinViewModel
@@ -39,26 +41,76 @@ class HistoryViewModel(
     var noMore by mutableStateOf(false)
 
     private var cursor = 0L
+    private var updateJob: Job? = null
+    private var updateGeneration = 0
+    private var loadedUid by mutableStateOf(userRepository.uid)
+    private var loadedLogin by mutableStateOf(userRepository.isLogin)
     var updating by mutableStateOf(false)
+    var hasLoaded by mutableStateOf(false)
+        private set
+    var loadError by mutableStateOf(false)
+        private set
+    val isLogin get() = userRepository.isLogin
+    val userId get() = userRepository.uid
+    val isCurrentAccount get() = loadedUid == userId && loadedLogin == isLogin
+
+    fun syncAccount() {
+        if (!isCurrentAccount) clearData()
+    }
 
     fun update() {
-        viewModelScope.launch(Dispatchers.IO) {
-            updateHistories()
+        syncAccount()
+        if (updating || noMore) return
+        val generation = ++updateGeneration
+        val requestUserId = userRepository.uid
+        val requestLogin = userRepository.isLogin
+        updating = true
+        loadError = false
+        updateJob = viewModelScope.launch {
+            try {
+                if (updateHistories(requestUserId, requestLogin)) hasLoaded = true
+            } catch (e: CancellationException) {
+                throw e
+            } finally {
+                if (generation == updateGeneration) {
+                    updating = false
+                    updateJob = null
+                }
+            }
         }
     }
 
-    private suspend fun updateHistories(context: Context = BVApp.context) {
-        if (updating || noMore) return
+    fun cancelUpdate() {
+        updateGeneration++
+        updateJob?.cancel()
+        updateJob = null
+        updating = false
+    }
+
+    fun clearData() {
+        cancelUpdate()
+        histories.clear()
+        cursor = 0L
+        noMore = false
+        hasLoaded = false
+        loadError = false
+        loadedUid = userRepository.uid
+        loadedLogin = userRepository.isLogin
+    }
+
+    private suspend fun updateHistories(requestUserId: Long, requestLogin: Boolean, context: Context = BVApp.context): Boolean {
         logger.fInfo { "Updating histories with params [cursor=$cursor, apiType=${Prefs.apiType}]" }
-        updating = true
-        runCatching {
-            val data = historyRepository.getHistories(
-                cursor = cursor,
-                preferApiType = Prefs.apiType
-            )
+        try {
+            val data = withContext(Dispatchers.IO) {
+                historyRepository.getHistories(
+                    cursor = cursor,
+                    preferApiType = Prefs.apiType
+                )
+            }
+            if (requestUserId != userRepository.uid || requestLogin != userRepository.isLogin) return false
 
             data.data.forEach { historyItem ->
-                histories.addWithMainContext(
+                histories.add(
                     VideoCardData(
                         avid = historyItem.oid,
                         title = historyItem.title,
@@ -73,29 +125,32 @@ class HistoryViewModel(
                     )
                 )
             }
-            //update cursor
             cursor = data.cursor
             logger.fInfo { "Update history cursor: [cursor=$cursor]" }
             logger.fInfo { "Update histories success" }
             if (cursor == 0L) {
-                withContext(Dispatchers.Main) { noMore = true }
+                noMore = true
                 logger.fInfo { "No more history" }
             }
-        }.onFailure {
-            logger.fWarn { "Update histories failed: ${it.stackTraceToString()}" }
-            when (it) {
-                is AuthFailureException -> {
-                    withContext(Dispatchers.Main) {
-                        BVApp.context.getString(R.string.exception_auth_failure)
-                            .toast(BVApp.context)
+            return true
+        } catch (e: CancellationException) {
+            throw e
+        } catch (e: Exception) {
+            if (requestUserId != userRepository.uid || requestLogin != userRepository.isLogin) return false
+            logger.fWarn { "Update histories failed: ${e.stackTraceToString()}" }
+            loadError = true
+            if (e is AuthFailureException) {
+                BVApp.context.getString(R.string.exception_auth_failure).toast(BVApp.context)
+                logger.fInfo { "User auth failure" }
+                if (!BuildConfig.DEBUG) {
+                    withContext(NonCancellable + Dispatchers.IO) {
+                        if (requestUserId == userRepository.uid && requestLogin == userRepository.isLogin) {
+                            userRepository.logout()
+                        }
                     }
-                    logger.fInfo { "User auth failure" }
-                    if (!BuildConfig.DEBUG) userRepository.logout()
                 }
-
-                else -> {}
             }
+            return false
         }
-        updating = false
     }
 }

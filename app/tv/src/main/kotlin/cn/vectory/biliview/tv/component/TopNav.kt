@@ -134,7 +134,8 @@ interface TopNavItem {
 enum class HomeTopNavItem(private val displayName: String) : TopNavItem {
     Recommend("推荐"),
     Popular("热门"),
-    Dynamics("动态");
+    Dynamics("动态"),
+    History("历史");
 
     override fun getDisplayName(context: Context): String {
         return displayName
