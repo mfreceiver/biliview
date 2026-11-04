@@ -1,18 +1,30 @@
 #!/usr/bin/env bash
 # BiliView release entry point: defaultRelease universal APK only.
 set -euo pipefail
-PUBLISH=0 PUBLISH_ONLY=0 ALLOW_DIRTY=0
+PUBLISH=0 PUBLISH_ONLY=0 PUBLISH_TAG=0 ALLOW_DIRTY=0
 usage() { cat <<'EOF'
-Usage: scripts/release_build.sh [--publish | --publish-only] [--allow-dirty]
+Usage: scripts/release_build.sh [--publish | --publish-only | --publish-tag TAG] [--allow-dirty]
   default: build, archive, and create annotated local tag (no network writes)
   --publish: build/archive/tag and publish to Gitea
   --publish-only: verify current tagged archive and retry Gitea publishing
+  --publish-tag TAG: publish an existing annotated tag on main without pushing main
   --allow-dirty: build/assert only; never archive/tag/publish
 EOF
 }
-while (($#)); do case "$1" in
- --help|-h) usage; exit 0;; --publish) PUBLISH=1;; --publish-only) PUBLISH_ONLY=1;; --allow-dirty) ALLOW_DIRTY=1;; *) echo "Unknown argument: $1" >&2; usage >&2; exit 2;; esac; shift; done
-[[ $((PUBLISH+PUBLISH_ONLY)) -le 1 ]] || { echo '--publish and --publish-only are mutually exclusive' >&2; exit 2; }
+while (($#)); do
+ case "$1" in
+  --help|-h) usage; exit 0;;
+  --publish) PUBLISH=1;;
+  --publish-only) PUBLISH_ONLY=1;;
+  --publish-tag)
+   ((PUBLISH_TAG == 0 && $# >= 2)) && [[ -n "$2" && "$2" != --* ]] || { echo '--publish-tag requires exactly one tag' >&2; exit 2; }
+   PUBLISH_TAG=1; REQUESTED_TAG="$2"; shift;;
+  --allow-dirty) ALLOW_DIRTY=1;;
+  *) echo "Unknown argument: $1" >&2; usage >&2; exit 2;;
+ esac
+ shift
+done
+[[ $((PUBLISH+PUBLISH_ONLY+PUBLISH_TAG)) -le 1 ]] || { echo '--publish, --publish-only and --publish-tag are mutually exclusive' >&2; exit 2; }
 ROOT="$(git rev-parse --show-toplevel 2>/dev/null)" || { echo 'Not in a git worktree' >&2; exit 1; }; cd "$ROOT"
 fail() { echo "❌ $*" >&2; exit 1; }
 PINNED_CERT_SHA256=156c58b7b1a47bc3651c9cadd2f512faad012b0531b813b27563b950915ff17a
@@ -34,7 +46,7 @@ echo "==> Signing preflight passed ($KS, alias=$KS_ALIAS)"
 BRANCH="$(git branch --show-current)"; [[ "$BRANCH" == main ]] || fail "release requires main; current=$BRANCH"
 DIRTY=0
 if [[ -n "$(git status --porcelain)" ]]; then
- if ((PUBLISH || PUBLISH_ONLY)); then git status --short >&2; fail 'publish requires a clean working tree'; fi
+ if ((PUBLISH || PUBLISH_ONLY || PUBLISH_TAG)); then git status --short >&2; fail 'publish requires a clean working tree'; fi
  if ((ALLOW_DIRTY)); then DIRTY=1; echo 'WARNING: --allow-dirty: build/assert only; archive/tag disabled'; else git status --short >&2; fail 'release requires a clean working tree'; fi
 fi
 REMOTE="$(git remote get-url origin 2>/dev/null || true)"
@@ -46,22 +58,37 @@ CONFIG=buildSrc/src/main/kotlin/AppConfiguration.kt
 read_const() { local key="$1"; sed -nE "s/^[[:space:]]*private const val $key = ([0-9]+)$/\\1/p" "$CONFIG"; }
 MAJOR="$(read_const major)"; MINOR="$(read_const minor)"; PATCH="$(read_const patch)"
 for n in "$MAJOR" "$MINOR" "$PATCH"; do [[ "$n" =~ ^[0-9]+$ ]] || fail 'version constants missing/ambiguous in AppConfiguration.kt'; done
-VCODE="$(git rev-list --count HEAD)"; SHORT="$(git rev-parse --short HEAD)"
-VNAME="$MAJOR.$MINOR.$PATCH.r$VCODE.$SHORT"
+if ((PUBLISH_TAG)); then
+ [[ "$REQUESTED_TAG" =~ ^v([0-9]+\.[0-9]+\.[0-9]+(\.[0-9]+)?\.r([0-9]+)\.([0-9a-f]+))$ ]] || fail "malformed release tag: $REQUESTED_TAG"
+ VNAME="${BASH_REMATCH[1]}"; VCODE="${BASH_REMATCH[3]}"; SHORT="${BASH_REMATCH[4]}"
+ TAG_REF="refs/tags/$REQUESTED_TAG"
+ git rev-parse -q --verify "$TAG_REF" >/dev/null || fail "--publish-tag requires local tag $REQUESTED_TAG"
+ [[ "$(git cat-file -t "$TAG_REF")" == tag ]] || fail "tag $REQUESTED_TAG is not annotated"
+ TAG_COMMIT="$(git rev-parse --verify "$TAG_REF^{commit}")" || fail "cannot resolve tag $REQUESTED_TAG to a commit"
+ git merge-base --is-ancestor "$TAG_COMMIT" main || fail "tag $REQUESTED_TAG is not an ancestor of main"
+ [[ "$TAG_COMMIT" == "$SHORT"* ]] || fail "tag $REQUESTED_TAG hash does not match its commit"
+ ACTUAL_CODE="$(git rev-list --count "$TAG_COMMIT")"
+ (( 10#$VCODE == 10#$ACTUAL_CODE )) || fail "tag $REQUESTED_TAG versionCode $VCODE differs from target commit count $ACTUAL_CODE"
+else
+ VCODE="$(git rev-list --count HEAD)"; SHORT="$(git rev-parse --short HEAD)"
+ VNAME="$MAJOR.$MINOR.$PATCH.r$VCODE.$SHORT"
+fi
 APK_VNAME="$VNAME.release"
 TAG="v$VNAME"; ARCHIVE="biliview-$VNAME-$SHORT-universal-release.apk"
 # Tag history and archives provide fail-closed monotonicity/uniqueness.
-if ((PUBLISH_ONLY)); then
- git rev-parse -q --verify "refs/tags/$TAG" >/dev/null || fail "--publish-only requires local tag $TAG"
- [[ "$(git rev-parse "$TAG^{commit}")" == "$(git rev-parse HEAD)" ]] || fail "tag $TAG does not point to HEAD"
+if ((PUBLISH_ONLY || PUBLISH_TAG)); then
+ if ((PUBLISH_ONLY)); then
+  git rev-parse -q --verify "refs/tags/$TAG" >/dev/null || fail "--publish-only requires local tag $TAG"
+  [[ "$(git rev-parse "$TAG^{commit}")" == "$(git rev-parse HEAD)" ]] || fail "tag $TAG does not point to HEAD"
+ fi
  APK_PATH="APK/$ARCHIVE"; [[ -f "$APK_PATH" ]] || fail "archive missing: $APK_PATH"
  [[ -f APK/SHA256SUMS ]] || fail 'APK/SHA256SUMS missing'
  sha256sum -c APK/SHA256SUMS >/dev/null || fail 'SHA256SUMS verification failed'
- grep -qE "APK/$ARCHIVE\$" APK/SHA256SUMS || fail "SHA256SUMS has no entry for $ARCHIVE"
+ awk -v file="APK/$ARCHIVE" '$2 == file { found=1 } END { exit !found }' APK/SHA256SUMS || fail "SHA256SUMS has no entry for $ARCHIVE"
  MAPPING="APK/biliview-$VNAME-$SHORT-mapping.txt"
  [[ -f "$MAPPING" ]] || fail "mapping archive missing: $MAPPING"
- grep -qE "APK/biliview-$VNAME-$SHORT-mapping\.txt\$" APK/SHA256SUMS || fail "SHA256SUMS has no entry for $MAPPING"
- [[ "$(git cat-file -t "$TAG")" == tag ]] || fail "tag $TAG is not annotated ($(git cat-file -t "$TAG" 2>/dev/null || echo unresolved))"
+ awk -v file="$MAPPING" '$2 == file { found=1 } END { exit !found }' APK/SHA256SUMS || fail "SHA256SUMS has no entry for $MAPPING"
+ [[ "$(git cat-file -t "refs/tags/$TAG")" == tag ]] || fail "tag $TAG is not annotated"
  NOTE_FILE="APK/biliview-$VNAME-$SHORT.md"; [[ -f "$NOTE_FILE" ]] || fail "release notes missing: $NOTE_FILE"
  scripts/release_assert_apk.sh "$APK_PATH" "$APK_VNAME" "$VCODE" "$CERT" universal
 else
@@ -138,7 +165,7 @@ else
  git tag -a "$TAG" -F "$NOTE_FILE"
  echo "✅ Archived and tagged $TAG"
 fi
-if ((PUBLISH || PUBLISH_ONLY)); then
+if ((PUBLISH || PUBLISH_ONLY || PUBLISH_TAG)); then
  # Credentials are fetched non-interactively before any network write.
  export GIT_TERMINAL_PROMPT=0 GIT_ASKPASS=true
  CRED="$(printf 'protocol=http\nhost=192.168.3.252:11330\n\n' | timeout 15 git credential fill)" || fail 'Gitea credentials unavailable (git credential fill)'
@@ -148,14 +175,16 @@ if ((PUBLISH || PUBLISH_ONLY)); then
  curl_config() { printf '%s\0%s\0' "$USERNAME" "$PASSWORD" | python3 -c 'import json,sys; u,p,_=sys.stdin.buffer.read().decode().split("\0",2); print("user = "+json.dumps(u+":"+p))'; }
   curl_auth() { curl_config | curl -K - -sS --fail-with-body --connect-timeout 10 --max-time 120 "$@"; }
  # Push the already-verified commit/tag; Gitea release/asset creation is repeatable on --publish-only.
- timeout 120 git push origin main
- timeout 120 git push origin "$TAG"
+ if ((!PUBLISH_TAG)); then timeout 120 git push origin main; fi
+ timeout 120 git push origin "refs/tags/$TAG:refs/tags/$TAG"
  RELEASE_JSON="$(mktemp)"; trap 'rm -f "$RELEASE_JSON"' EXIT
  STATUS="$(curl_config | curl -K - -sS --connect-timeout 10 --max-time 120 -o "$RELEASE_JSON" -w '%{http_code}' "$API/releases/tags/$TAG")" || fail 'Gitea release lookup failed'
  if [[ "$STATUS" == 404 ]]; then
    BODY="$(python3 -c 'import json,sys; print(json.dumps({"tag_name":sys.argv[1],"name":sys.argv[1],"body":open(sys.argv[2],encoding="utf8").read()}))' "$TAG" "$NOTE_FILE")"
    STATUS="$(curl_auth -o "$RELEASE_JSON" -w '%{http_code}' -X POST -H 'Content-Type: application/json' -d "$BODY" "$API/releases")" || fail 'Gitea release creation failed'
    [[ "$STATUS" =~ ^2 ]] || fail "Gitea release creation HTTP $STATUS"
+ else
+   [[ "$STATUS" =~ ^2 ]] || fail "Gitea release lookup HTTP $STATUS"
  fi
  REL_ID="$(python3 -c 'import json,sys; print(json.load(open(sys.argv[1])).get("id", ""))' "$RELEASE_JSON")"
  [[ -n "$REL_ID" ]] || fail 'Gitea release response has no id'
@@ -206,6 +235,7 @@ PYASSET
       REMOTE_SHA="$(sha256sum "$DOWNLOAD" | cut -d' ' -f1)"; rm -f "$DOWNLOAD"
     fi
     [[ "$REMOTE_SIZE" == "$LOCAL_SIZE" && "$REMOTE_SHA" == "$LOCAL_SHA" ]] || fail "post-upload asset size/SHA256 mismatch for $ARCHIVE (size=$REMOTE_SIZE sha=$REMOTE_SHA)"
+    echo "✅ Uploaded and verified asset by name, size and SHA256: $ARCHIVE"
   fi
   echo "✅ Published $TAG: http://192.168.3.252:11330/mfreceiver/biliview/releases/tag/$TAG"
 else
